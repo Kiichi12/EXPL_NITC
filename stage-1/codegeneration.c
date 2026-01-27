@@ -6,8 +6,20 @@ int fileinit(FILE *target_file)
 {
     // if (!root) return -1;
 
-    fprintf(target_file, "0\n2056\n0\n0\n0\n0\n0\n0\n");
+    fprintf(target_file, "0\n2056\n0\n0\n0\n0\n0\n0\nBRKP\n");
     return 0;
+}
+
+void emitExit(FILE *target_file) {
+    fprintf(target_file, "BRKP\n");
+    fprintf(target_file, "MOV R0, \"Exit\"\n");
+    fprintf(target_file, "PUSH R0\n");
+    fprintf(target_file, "PUSH R0\n");
+    fprintf(target_file, "PUSH R0\n");
+    fprintf(target_file, "PUSH R0\n");
+    fprintf(target_file, "PUSH R0\n");
+    fprintf(target_file, "CALL 0\n");
+    fprintf(target_file, "SUB SP, 5");
 }
 
 // Recursively generate code for expression tree

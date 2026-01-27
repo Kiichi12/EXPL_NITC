@@ -7,7 +7,7 @@ void fileinit(FILE *target_file)
 {
     // if (!root) return -1;
 
-    fprintf(target_file, "0\n2056\n0\n0\n0\n0\n0\n0\nBRKP\nMOV SP,4123\n ");
+    fprintf(target_file, "0\n2056\n0\n0\n0\n0\n0\n0\nBRKP\nMOV SP,4123\n");
 }
 
 void emitExit(FILE *target_file) {

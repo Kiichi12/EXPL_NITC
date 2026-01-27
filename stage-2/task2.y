@@ -96,7 +96,9 @@ const char* nodeTypeToString(int nodetype) {
         case NODE_NUM:    return "NUM";
         case NODE_ID:     return "ID";
         case NODE_PLUS:   return "PLUS";
+        case NODE_MINUS:  return "MINUS";
         case NODE_MUL:    return "MUL";
+        case NODE_DIV:    return "DIV";
         case NODE_ASSIGN: return "ASSIGN";
         case NODE_READ:   return "READ";
         case NODE_WRITE:  return "WRITE";

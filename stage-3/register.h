@@ -3,8 +3,6 @@
 
 #include <stdio.h>
 
-// Maximum number of registers we assume
-// (XSM typically has 20 general-purpose registers)
 #define MAX_REGS 20
 
 // Initializes the register allocator
@@ -17,4 +15,4 @@ int getReg();
 void freeReg();
 
 
-#endif // REGISTER_H
+#endif 

@@ -23,10 +23,6 @@ int getLabelAddress(int label);
 void buildLabelTable(FILE *fp);
 void translateLabels(FILE *in, FILE *out);
 
-
-// extern LoopContext loopStack[100];
-// extern int loopDepth;
-
 void pushLoopContext(int breakLabel, int continueLabel);
 void popLoopContext();
 LoopContext* getCurrentLoopContext();

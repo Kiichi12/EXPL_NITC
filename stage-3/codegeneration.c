@@ -23,7 +23,7 @@ void emitExit(FILE *target_file) {
 }
 
 
-// Recursively generate code for AAST
+
 int codeGen(tnode *t, FILE *target_file)
 {
     int r1, r2;

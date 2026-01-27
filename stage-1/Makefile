@@ -28,7 +28,7 @@ CODEGENERATION_SRC = codegeneration.c
 CODEGENERATION_HDR = codegeneration.h
 
 # Executable
-TARGET  = task2
+TARGET  = stage-final
 
 # Generated
 LEX_OUT = lex.yy.c
@@ -57,7 +57,8 @@ clean:
 	      $(LEX_OUT) \
 	      $(YAC_OUT) \
 	      $(YAC_HDR) \
-	      *.o
+	      *.o \
+		  *.xsm
 
 # Phony targets
 .PHONY: all clean

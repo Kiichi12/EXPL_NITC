@@ -172,7 +172,7 @@ int main()
     FILE *source_file = fopen("source.expl", "r");
     yyin = source_file;
 
-    yyparse();  // Parse and build Expression tree
+    yyparse();  
 
     printAST(root, 0);
 
@@ -181,7 +181,7 @@ int main()
     //     printf("%c:%d\n", 'a' + i, symtable[i]);
     // }
 
-    // Open output file for intermediate code
+    
     FILE *temp = fopen("temp.xsm", "w");
     if (!temp) {
         fprintf(stderr, "Error opening temp.xsm for writing\n");
@@ -191,13 +191,12 @@ int main()
     initReg();
 
     // Generate code into temp.xsm
-    fileinit(temp); // header and breakpt
+    fileinit(temp); 
     codeGen(root, temp);
     emitExit(temp);
 
     fclose(temp);  
 
-    // reopen for reading
     temp = fopen("temp.xsm", "r");
     if (!temp) {
         fprintf(stderr, "Error opening temp.xsm for reading\n");
@@ -206,7 +205,6 @@ int main()
 
     buildLabelTable(temp);
 
-    // Open output file for target code
     FILE *target_file = fopen("target_file.xsm", "w");
     if (!target_file) {
         fprintf(stderr, "Error opening target_file.xsm for writing\n");

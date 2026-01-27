@@ -4,7 +4,7 @@
     #include "tree.h"
     #include <stdlib.h>
 
-    #include "y.tab.h" /*token definitions from yacc*/
+    #include "y.tab.h" 
 %}
 
 %%

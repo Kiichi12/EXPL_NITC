@@ -69,6 +69,7 @@ int main()
     // Optional: print final result in memory or print out result
     // For example, store result into memory location 4096
     fprintf(target_file, "MOV [4096], R%d\n", resultReg);
+    emitExit(target_file);
 
     // You could also free the final register if desired
     freeReg();

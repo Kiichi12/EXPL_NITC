@@ -31,7 +31,7 @@ tnode* makeOperatorNode(char *op, tnode *l, tnode *r) {
     return node;
 }
 
-// Inorder (left → root → right)
+
 void inorderTraversal(tnode *root) {
     if (!root) return;
     inorderTraversal(root->left);
@@ -44,7 +44,7 @@ void inorderTraversal(tnode *root) {
     inorderTraversal(root->right);
 }
 
-// Preorder (root → left → right)
+
 void preorderTraversal(tnode *root) {
     if (!root) return;
 

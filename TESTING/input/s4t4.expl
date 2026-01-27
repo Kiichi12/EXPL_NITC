@@ -1,0 +1,23 @@
+decl
+  int n;
+  int i;
+  int isprime;
+enddecl
+
+begin
+  read(n);
+
+  if (n <= 1) then
+    write(0);
+  else
+    isprime = 1;
+    i = 2;
+    while ((i * i) <= n) do
+      if (((n / i) * i) == n) then
+        isprime = 0;
+      endif;
+      i = i + 1;
+    endwhile;
+    write(isprime);
+  endif;
+end

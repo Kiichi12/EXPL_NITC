@@ -76,32 +76,32 @@ void translateLabels(FILE *in, FILE *out)
 
     while (fgets(line, sizeof(line), in)) {
 
-        // Skip label lines
+        
         if (line[0] == 'L' && (line[1] >= '0' && line[1] <= '9'))
             continue;
 
-        // JMP Lx
+        
         if (strncmp(line, "JMP L", 5) == 0) {
             int label;
             sscanf(line, "JMP L%d", &label);
             fprintf(out, "JMP %d\n", getLabelAddress(label));
         }
 
-        // JZ Rx, Lx
+        
         else if (strncmp(line, "JZ", 2) == 0) {
             int reg, label;
             sscanf(line, "JZ R%d, L%d", &reg, &label);
             fprintf(out, "JZ R%d, %d\n", reg, getLabelAddress(label));
         }
 
-        // JNZ Rx, Lx (for do-while)
+        
         else if (strncmp(line, "JNZ", 3) == 0) {
             int reg, label;
             sscanf(line, "JNZ R%d, L%d", &reg, &label);
             fprintf(out, "JNZ R%d, %d\n", reg, getLabelAddress(label));
         }
 
-        // Normal instruction
+        
         else {
             fprintf(out, "%s", line);
         }
