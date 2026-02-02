@@ -1,0 +1,69 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
+enum nodeType{
+    NODE_NUM = 201,
+    NODE_STRING,
+    NODE_ID,
+    NODE_ARRAY_ELEMENT,
+    NODE_2D_ARRAY_ELEMENT,
+    NODE_POINTER,
+    NODE_DEREF,
+
+    NODE_PLUS,
+    NODE_MINUS,  
+    NODE_MUL,
+    NODE_DIV,   
+    
+    NODE_ASSIGN,
+    NODE_ARRAY_ASSIGN,
+    NODE_2D_ARRAY_ASSIGN,
+
+    NODE_FUNCALL,
+
+    NODE_READ, 
+    NODE_WRITE,
+
+    NODE_CONNECTOR,
+
+    NODE_WHILE,
+    NODE_IF,
+    NODE_IFELSE,
+
+    NODE_BREAK,    
+    NODE_CONTINUE,
+    NODE_DOWHILE,    
+    NODE_REPEAT,  
+
+    NODE_LT,
+    NODE_LE,
+    NODE_GT,
+    NODE_GE,
+    NODE_EQ,
+    NODE_NE,
+};
+
+enum varType{
+    TYPE_INT = 101,
+    TYPE_STRING,
+    TYPE_BOOL,
+    TYPE_POINTER,
+    TYPE_NONE
+};
+
+#define MAX_LABELS 256
+
+#define STACK_START 4096
+#define CODE_START 2056
+#define CODE_END 4095
+#define NUM_STATIC_VARS 26
+#define HEADER_SIZE 8
+#define TOTAL_REGISTERS 20
+#define INSTR_SIZE 2
+
+#define PTR_LEVEL_0 0
+#define PTR_LEVEL_1 1
+#define PTR_LEVEL_2 2
+
+
+#endif
