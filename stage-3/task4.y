@@ -209,15 +209,15 @@ int main(int argc, char **argv)
     }
 
     yyin = source_file;
-    yyparse();
-    fclose(source_file);  // Parse and build Expression tree
+    yyparse(); // Parse and build AST
+    fclose(source_file);  
 
     printAST(root, 0);
 
-    // int result = evaluate(root);
-    // for (int i = 0; i < 26; i++) {
-    //     printf("%c:%d\n", 'a' + i, symtable[i]);
-    // }
+    //int result = evaluate(root);
+    //for (int i = 0; i < 26; i++) {
+    //    printf("%c:%d\n", 'a' + i, symtable[i]);
+    //}
 
     // Open output file for intermediate code
     FILE *temp = fopen("temp.xsm", "w");

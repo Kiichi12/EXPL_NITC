@@ -73,7 +73,7 @@ int codeGen(tnode *t, FILE *target_file)
                 default: break;
             }
 
-            freeReg();   // free r2
+            freeReg();   
             return r1;
 
         case NODE_ASSIGN:
@@ -110,8 +110,8 @@ int codeGen(tnode *t, FILE *target_file)
             fprintf(target_file, "PUSH R%d\n", r2);
             fprintf(target_file, "CALL 0\n");
             fprintf(target_file, "POP R0\nPOP R0\nPOP R0\nPOP R0\nPOP R0\n");
-            freeReg();   // r2
-            freeReg();   // r1
+            freeReg();   
+            freeReg();   
             return -1;
 
         case NODE_IF:
@@ -152,7 +152,7 @@ int codeGen(tnode *t, FILE *target_file)
             int startLabel = getLabel();
             int endLabel = getLabel();
             
-            pushLoopContext(endLabel, startLabel);  // ADD
+            pushLoopContext(endLabel, startLabel);  
             
             emitLabel(target_file, startLabel);
             r1 = codeGen(t->left, target_file);
@@ -162,7 +162,7 @@ int codeGen(tnode *t, FILE *target_file)
             fprintf(target_file, "JMP L%d\n", startLabel);
             emitLabel(target_file, endLabel);
             
-            popLoopContext();  // ADD
+            popLoopContext();  
         
             return -1;
         }
@@ -220,8 +220,8 @@ int codeGen(tnode *t, FILE *target_file)
             pushLoopContext(endLabel, startLabel);
             
             emitLabel(target_file, startLabel);
-            codeGen(t->left, target_file);  // Body first
-            r1 = codeGen(t->right, target_file); // Condition
+            codeGen(t->left, target_file); // Body first
+            r1 = codeGen(t->right, target_file); 
             fprintf(target_file, "JZ R%d, L%d\n", r1, startLabel);
             freeReg();
             emitLabel(target_file, endLabel);

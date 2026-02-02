@@ -50,7 +50,6 @@ struct tnode* makeBoolNode(int nodetype, struct tnode* l, struct tnode* r)
     return t;
 }
 
-
 struct tnode* makeAssignNode(struct tnode* id, struct tnode* expr) 
 {
     struct tnode* t = malloc(sizeof(struct tnode));
@@ -86,7 +85,7 @@ struct tnode* makeReadNode(struct tnode* id)
     return t;
 }
 
-struct tnode* makeWriteNode(struct tnode* expr) 
+struct tnode* makeWriteNode(struct tnode* expr)
 {
     struct tnode* t = malloc(sizeof(struct tnode));
 
@@ -147,17 +146,15 @@ struct tnode* makeDoWhileNode(struct tnode* body, struct tnode* condition)
     return t;
 }
 
-struct tnode* makeRepeatUntilNode(struct tnode* body, struct tnode* condition)
+struct tnode* makeRepeatUntilNode(struct tnode* body, struct tnode* condition) 
 {
     struct tnode* t = malloc(sizeof(struct tnode));
     t->nodetype = NODE_REPEAT;
     t->left = body;      // body executes first in repeat-until
-    t->right = condition; // condition for termination (opposite of while)
+    t->right = condition; 
     t->type = NONE;
     return t;
 }
-
-
 
 struct tnode* makeIfElseNode(struct tnode* condition, struct tnode* ifBody, struct tnode* elseBody)
 {
@@ -176,6 +173,7 @@ struct tnode* makeIfElseNode(struct tnode* condition, struct tnode* ifBody, stru
     
     return t;
 }
+
 struct tnode* makeIfNode(struct tnode* condition, struct tnode* ifBody)
 {
     struct tnode* t = malloc(sizeof(struct tnode));
@@ -186,7 +184,6 @@ struct tnode* makeIfNode(struct tnode* condition, struct tnode* ifBody)
     t->type = NONE;
     return t;
 }
-
 
 void deleteTree(tnode *root) 
 {

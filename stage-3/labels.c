@@ -58,7 +58,6 @@ void buildLabelTable(FILE *fp)
             addLabel(label, address);
             
         } else {
-            // Real instruction
             address=address+INSTR_SIZE;
             if(address >= CODE_END)
             {
@@ -75,33 +74,24 @@ void translateLabels(FILE *in, FILE *out)
     rewind(in);
 
     while (fgets(line, sizeof(line), in)) {
-
-        
         if (line[0] == 'L' && (line[1] >= '0' && line[1] <= '9'))
             continue;
 
-        
         if (strncmp(line, "JMP L", 5) == 0) {
             int label;
             sscanf(line, "JMP L%d", &label);
             fprintf(out, "JMP %d\n", getLabelAddress(label));
-        }
-
-        
+        } 
         else if (strncmp(line, "JZ", 2) == 0) {
             int reg, label;
             sscanf(line, "JZ R%d, L%d", &reg, &label);
             fprintf(out, "JZ R%d, %d\n", reg, getLabelAddress(label));
         }
-
-        
         else if (strncmp(line, "JNZ", 3) == 0) {
             int reg, label;
             sscanf(line, "JNZ R%d, L%d", &reg, &label);
             fprintf(out, "JNZ R%d, %d\n", reg, getLabelAddress(label));
         }
-
-        
         else {
             fprintf(out, "%s", line);
         }

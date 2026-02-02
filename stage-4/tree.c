@@ -21,7 +21,7 @@ struct tnode* makeStringConstNode(char *lexeme)
     t->strVal = strdup(lexeme);
     t->type = TYPE_STRING;
     t->varname = NULL;
-    t->nodetype = NODE_STRING;    // define a new nodetype
+    t->nodetype = NODE_STRING;    
     t->left = t->right = NULL;
 
     return t;
@@ -175,7 +175,7 @@ struct tnode* makeAssignNode(struct tnode* id, struct tnode* expr)
     t->nodetype = NODE_ASSIGN;
     t->left = id;
     t->right = expr;
-    t->Gentry = id->Gentry;    // new: remember GST entry for this variable
+    t->Gentry = id->Gentry;   
 
     return t;
 }
@@ -306,7 +306,7 @@ struct tnode* makeRepeatUntilNode(struct tnode* body, struct tnode* condition)
     struct tnode* t = malloc(sizeof(struct tnode));
     t->nodetype = NODE_REPEAT;
     t->left = body;      // body executes first in repeat-until
-    t->right = condition; // condition for termination (opposite of while)
+    t->right = condition; 
     t->type = TYPE_NONE;
     return t;
 }
