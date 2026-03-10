@@ -1,4 +1,51 @@
 decl
-    int result;
-    int result;
+    int swap(*int x, *int y);
+    int factorial(int n);
 enddecl
+
+int factorial(int n)
+{
+    decl
+        int result;
+    enddecl
+    begin
+        if(n == 0) then
+            result = 1;
+        else
+            result = n * factorial(n-1);
+        endif;
+        return result;
+    end
+}
+
+int swap(*int x, *int y)
+{
+    decl
+        int temp;
+    enddecl
+    begin
+        write("before swap");
+        temp = *x;
+        write(temp);
+        *x = *y;
+        *y = temp;
+        write("before return");
+        return 0;   
+    end
+}
+
+int main(){
+    decl
+        int x;
+        int y;
+        int a;
+    enddecl
+    begin
+        read(x);
+        read(y);
+        a = swap(&x, &y);
+        write(a);
+        write(x);
+        write(y);
+    end
+}

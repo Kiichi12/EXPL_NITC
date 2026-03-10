@@ -1,0 +1,22 @@
+decl
+    str names[3];
+    str t;
+    int i;
+enddecl
+begin
+    i = 0;
+    while (i < 3) do
+        read(names[i]);
+        i = i + 1;
+    endwhile;
+
+    t = names[0];
+    names[0] = names[2];
+    names[2] = t;
+
+    i = 0;
+    while (i < 3) do
+        write(names[i]);
+        i = i + 1;
+    endwhile;
+end

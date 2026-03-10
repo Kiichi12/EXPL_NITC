@@ -123,11 +123,25 @@ VarList:
     {  
         ptrLevel = PTR_LEVEL_1;
         InstallPointer($2->varname, TYPE_POINTER, ptrLevel);
+        ptrLevel = PTR_LEVEL_0;
     }
     | MUL MUL ID      
     { 
         ptrLevel = PTR_LEVEL_2;
         InstallPointer($3->varname, TYPE_POINTER, ptrLevel);
+        ptrLevel = PTR_LEVEL_0;
+    }
+    | VarList COMMA MUL ID
+    {  
+        ptrLevel = PTR_LEVEL_1;
+        InstallPointer($4->varname, TYPE_POINTER, ptrLevel);
+        ptrLevel = PTR_LEVEL_0;
+    }
+    | VarList COMMA MUL MUL ID      
+    { 
+        ptrLevel = PTR_LEVEL_2;
+        InstallPointer($5->varname, TYPE_POINTER, ptrLevel);
+        ptrLevel = PTR_LEVEL_0;
     }
     | ID                                                
     { 
@@ -158,6 +172,11 @@ InputStmt:
     READ LPAREN ID RPAREN                             { $$ = makeReadNode(makeVarNode($3->varname)); }
     | READ LPAREN ID LSQBR E RSQBR RPAREN               { $$ = makeReadNode(makeArrayNode($3, $5)); }
     | READ LPAREN ID LSQBR E RSQBR LSQBR E RSQBR RPAREN { $$ = makeReadNode(make2dArrayNode($3, $5, $8)); }
+    | READ LPAREN MUL ID RPAREN               
+    { 
+        tnode* ptr_node = makeVarNode($4->varname);
+        $$ = makeReadNode(makeDerefNode(ptr_node)); 
+    }
     ;
 
 OutputStmt:
@@ -231,7 +250,6 @@ AssgStmt:
         
     }
     ;
-;
 
 
 IfStmt:
@@ -440,7 +458,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* ---------- Open input ---------- */
     FILE *source_file = fopen(argv[1], "r");
     if (!source_file) {
         fprintf(stderr, "Parse error: line number:%d\nfopen input\nyytext:%s\n", lineNumber, yytext);
@@ -467,7 +484,6 @@ int main(int argc, char **argv)
     printAST(root, 0);
 #endif
 
-    /* ---------- Intermediate code ---------- */
     FILE *temp = tmpfile();
     if (!temp) {
         fprintf(stderr, "Parse error: line number:%d\ntmpfile\nyytext:%s\n", lineNumber, yytext);
@@ -482,7 +498,6 @@ int main(int argc, char **argv)
 
     rewind(temp);
 
-    /* ---------- Label resolution ---------- */
     buildLabelTable(temp);
 
     FILE *out = fopen(argv[2], "w");
@@ -495,7 +510,7 @@ int main(int argc, char **argv)
     translateLabels(temp, out);
 
     fclose(out);
-    fclose(temp);   /* auto-deleted */
+    fclose(temp);   
 
     return 0;
 }

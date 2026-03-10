@@ -1,34 +1,51 @@
 decl
-  int n;
-  int i, j, t;
-  int a[20];
+    int a[2][2], b[2][2], c[2][2];
+    int i, j, k, sum;
 enddecl
-
 begin
-  read(n);
-  i = 0;
-  while (i < n) do
-    read(a[i]);
-    i = i + 1;
-  endwhile;
-
-  i = 0;
-  while (i < (n - 1)) do
-    j = 0;
-    while (j < (n - i - 1)) do
-      if (a[j] > a[j + 1]) then
-        t = a[j];
-        a[j] = a[j + 1];
-        a[j + 1] = t;
-      endif;
-      j = j + 1;
+    i = 0;
+    while (i < 2) do
+        j = 0;
+        while (j < 2) do
+            read(a[i][j]);
+            j = j + 1;
+        endwhile;
+        i = i + 1;
     endwhile;
-    i = i + 1;
-  endwhile;
 
-  i = 0;
-  while (i < n) do
-    write(a[i]);
-    i = i + 1;
-  endwhile;
+    i = 0;
+    while (i < 2) do
+        j = 0;
+        while (j < 2) do
+            read(b[i][j]);
+            j = j + 1;
+        endwhile;
+        i = i + 1;
+    endwhile;
+
+    i = 0;
+    while (i < 2) do
+        j = 0;
+        while (j < 2) do
+            sum = 0;
+            k = 0;
+            while (k < 2) do
+                sum = sum + (a[i][k] * b[k][j]);
+                k = k + 1;
+            endwhile;
+            c[i][j] = sum;
+            j = j + 1;
+        endwhile;
+        i = i + 1;
+    endwhile;
+
+    i = 0;
+    while (i < 2) do
+        j = 0;
+        while (j < 2) do
+            write(c[i][j]);
+            j = j + 1;
+        endwhile;
+        i = i + 1;
+    endwhile;
 end

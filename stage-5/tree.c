@@ -39,22 +39,33 @@ struct tnode* makeNewVarNode(char* name)
     return t;
 }
 
-struct tnode* makeVarNode(char* name) {
+struct tnode* makeVarNode(char* name) 
+{
     struct tnode* t = malloc(sizeof(struct tnode));
     t->varname = strdup(name);
     t->nodetype = NODE_ID;
     t->left = t->right = NULL;
 
+    // 1. Search Local Symbol Table
+    struct Lsymbol *l = LLookup(name);
+    if (l) {
+        t->type = l->type;
+        t->Gentry = NULL; // Mark as local
+        return t;
+    }
+
+    // 2. Search Global Symbol Table
     struct Gsymbol *g = Lookup(name);
     if (g) {
-        t->Gentry = g;
         t->type = g->type;
-    } else {
-        t->Gentry = NULL;
-        t->type = TYPE_NONE; // Allow parsing to continue, handle error in Task 2
+        t->Gentry = g;
+        return t;
     }
-    return t;
+
+    fprintf(stderr, "Error: Variable %s undeclared\n", name);
+    exit(1);
 }
+
 struct tnode* makeArrayNode(tnode* id, tnode* expr)
 {
     struct tnode* t = malloc(sizeof(struct tnode));
@@ -118,11 +129,12 @@ struct tnode* makePointerNode(tnode* var)
     t->nodetype = NODE_POINTER;
     t->left = var;
     t->right = NULL;
-    t->type = TYPE_POINTER;
     t->varname = var->varname;
-    Gsymbol *g = Lookup(var->varname);
-    t->val = g->binding;
-
+    
+    // Preserve the base type from the variable and set pointer level
+    t->type = var->type;
+    t->Gentry = var->Gentry;
+    
     return t;
 }
 
@@ -338,30 +350,90 @@ struct tnode* makeIfNode(struct tnode* condition, struct tnode* ifBody)
     return t;
 }
 
-struct tnode* makeFuncallNode(char *funcname, struct tnode *arglist)
+int compArgParam(struct Paramstruct **param, struct tnode *arg)
 {
+    if (arg == NULL)
+        return 1;
+
+    if (arg->nodetype == NODE_CONNECTOR)
+    {
+        if (!compArgParam(param, arg->left))
+            return 0;
+        return compArgParam(param, arg->right);
+    }
+
+    if (*param == NULL)
+    {
+        fprintf(stderr, "Error: Function %s: too many arguments\n", arg->varname);
+        return 0; 
+    }
+
+    if (arg->type != (*param)->type)
+    {
+        fprintf(stderr, "Error: Function %s: argument %d type mismatch\n", arg->varname, arg->type);
+        return 0;
+    }
+
+    int argPtr = 0;
+    if (arg->Gentry)
+        argPtr = arg->Gentry->ptrLevel;
+    
+    // For address-of operations (NODE_POINTER), increment pointer level
+    if (arg->nodetype == NODE_POINTER)
+        argPtr++;
+
+    if (argPtr != (*param)->ptrLevel)
+    {
+        fprintf(stderr, "Error: Function %s: argument %d pointer level mismatch\n", arg->varname, arg->type);
+        return 0;
+    }
+
+    *param = (*param)->next;
+
+    return 1;
+}
+
+
+struct tnode* makeFuncallNode(char *funcname, struct tnode *arglist) {
+    struct Gsymbol *g = Lookup(funcname);
+    if (!g) {
+        fprintf(stderr, "Error: Function %s undeclared\n", funcname);
+        exit(1);
+    }
+
+    struct Paramstruct *p = g->paramlist;
+    struct tnode *arg = arglist;
+
+    if(!compArgParam(&p,arg) || p != NULL)
+    {
+        fprintf(stderr, "Function %s\n", funcname);
+        exit(1);
+    }
+
     struct tnode *t = malloc(sizeof(struct tnode));
     t->nodetype = NODE_FUNCALL;
     t->varname = strdup(funcname);
     t->left = arglist;
-    
-    struct Gsymbol *g = Lookup(funcname);
-    if (!g) {
-        fprintf(stderr, "Undeclared function '%s'\n", funcname);
-        exit(1);
-    }
-    
-    if (g->paramlist == NULL && arglist != NULL) {
-        fprintf(stderr, "Function '%s' takes no arguments\n", funcname);
-        exit(1);
-    }
-    
     t->Gentry = g;
-    t->type = g->type;  // Function return type
+    t->type = g->type;
+    return t;
+}
+
+struct tnode* makeReturnNode(struct tnode* E, char * funcName) 
+{
+    struct tnode* t = malloc(sizeof(struct tnode));
+    t->nodetype = NODE_RET;
+    t->left = E;
+    t->right = NULL;
+
+
+    t->varname = strdup(funcName);
+    if(E)
+        t->type = E->type; // Return type matches expression type
+    else
+        t->type = TYPE_NONE; // No return value
     
     return t;
-
-
 }
 
 const char* nodeTypeToString(int nodetype)
@@ -375,7 +447,8 @@ const char* nodeTypeToString(int nodetype)
         case NODE_2D_ARRAY_ASSIGN: return "2D_ARRAY_ASSIGN";
         case NODE_POINTER: return "POINTER";
         case NODE_DEREF: return "DEREFERENCE";
-
+        case NODE_FUNCALL: return "FUNCALL";
+        case NODE_RET: return "RETURN";
 
         case NODE_PLUS:       return "PLUS";
         case NODE_MINUS:      return "MINUS";
@@ -426,7 +499,8 @@ void printAST(struct tnode* t, int level)
 
     if (t->nodetype == NODE_ID ||
         t->nodetype == NODE_ASSIGN ||
-        t->nodetype == NODE_READ)
+        t->nodetype == NODE_READ ||
+        t->nodetype == NODE_FUNCALL)
         printf(" (%s)", t->varname);
 
     printf("\n");

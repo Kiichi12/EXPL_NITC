@@ -6,13 +6,13 @@ typedef struct Gsymbol
 {
     char *name;
     enum varType type;          
-    int size;      // in words    
+    int size;      
     int binding;
     struct Gsymbol *next;
 
-    int arrayDim;  // 0 or 1 or 2    
-    int rows;      // for 2D    
-    int cols;      // for 2D
+    int arrayDim;  
+    int rows;      
+    int cols;      
     int ptrLevel;  
 } Gsymbol;
 

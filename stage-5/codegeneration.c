@@ -2,14 +2,74 @@
 #include "codegeneration.h"
 #include "labels.h"
 #include "memory.h"
+#include "constants.h"
+
+#include <stdbool.h>
+
 #include <stdlib.h>
+
+extern bool registers[MAX_REGS]; // Access register status
+
+int saveRegisters(FILE *target_file, int *regs) 
+{
+    int count = 0;
+    for (int i = 0; i < MAX_REGS; i++) {
+        if (!registers[i]) 
+        
+        { // If not true, it's in use
+            fprintf(target_file, "PUSH R%d\n", i);
+            count++;
+            regs[i] = 1;
+        }
+    }
+    return count;
+}
+
+
+void restoreRegisters(FILE *target_file, int *regs, int count) 
+{
+    for (int i = MAX_REGS - 1; i >= 0; i--) {
+        if (regs[i] == 1) {
+            fprintf(target_file, "POP R%d\n", i);
+            count--;
+            if (count == 0) break;
+        }
+    }
+}
+
+int pushArgStack(tnode *temp, FILE *target_file, int argCount)
+{
+    if(temp->nodetype == NODE_CONNECTOR) 
+    {
+        int r = codeGen(temp->right, target_file);
+        fprintf(target_file, "PUSH R%d\n", r);
+        freeReg(r);
+
+        argCount = 1 + pushArgStack(temp->left, target_file, argCount);
+    } 
+    else if(temp != NULL)
+    {
+        int r = codeGen(temp, target_file);
+        fprintf(target_file, "PUSH R%d\n", r);
+        freeReg(r);
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+    return argCount;
+}
+
+
 
 void fileinit(FILE *target_file)
 {
-    fprintf(target_file, "0\n2056\n0\n0\n0\n0\n0\n0\nBRKP\n");
+    fprintf(target_file, "0\nMAIN\n0\n0\n0\n0\n0\n0\nBRKP\n"); 
 }
 
-void emitExit(FILE *target_file) {
+void emitExit(FILE *target_file) 
+{
     fprintf(target_file, "MOV R0, \"Exit\"\n");
     fprintf(target_file, "PUSH R0\n");
     fprintf(target_file, "PUSH R0\n");
@@ -20,8 +80,36 @@ void emitExit(FILE *target_file) {
     fprintf(target_file, "SUB SP, 5\n");
 }
 
-int getAddrReg(tnode *t, FILE *target_file) {
+int getAddrReg(tnode *t, FILE *target_file) 
+{
     int addr_reg = getReg();
+
+    if (t->nodetype == NODE_DEREF) {
+        freeReg(addr_reg); // We don't need the default reg yet
+        // The address of (*p) is the VALUE of p
+        return codeGen(t->left, target_file); 
+    }
+
+    // Check if it's a Local Variable (LST)
+    struct Lsymbol *l = LLookup(t->varname);
+    if (l) {
+        fprintf(target_file, "MOV R%d, BP\n", addr_reg);
+        fprintf(target_file, "ADD R%d, %d\n", addr_reg, l->binding);
+        return addr_reg;
+    }
+    
+
+    // Otherwise, check Global Variable (GST)
+    if (t->nodetype == NODE_ID) {
+        fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
+        return addr_reg;
+    }
+
+    if (t->nodetype == NODE_POINTER) {
+        fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
+        fprintf(target_file, "MOV R%d, [R%d]\n", addr_reg, addr_reg);
+        return addr_reg;
+    }
 
     if (t->nodetype == NODE_ARRAY_ELEMENT) {
         int index_reg = codeGen(t->right, target_file);
@@ -52,7 +140,7 @@ int getAddrReg(tnode *t, FILE *target_file) {
     exit(1);
 }
 
-int codeGen(tnode *t, FILE *target_file)
+int codeGen(tnode *t, FILE *target_file) 
 {
     if (t == NULL)
         return -1;
@@ -75,14 +163,11 @@ int codeGen(tnode *t, FILE *target_file)
 
         case NODE_ID: 
         {
-            struct Gsymbol *g = t->Gentry;
-            if (!g) {
-                printf("Undeclared variable '%s' in codeGen\n", t->varname);
-                exit(1);
-            }
-            int r1 = getReg();
-            fprintf(target_file, "MOV R%d, [%d]\n", r1, g->binding);
-            return r1;
+            int addr_reg = getAddrReg(t, target_file);
+            int val_reg = getReg();
+            fprintf(target_file, "MOV R%d, [R%d]\n", val_reg, addr_reg);
+            freeReg(addr_reg);
+            return val_reg;
         }
 
         case NODE_ARRAY_ELEMENT:
@@ -144,15 +229,7 @@ int codeGen(tnode *t, FILE *target_file)
 
         case NODE_POINTER:
         {
-            struct Gsymbol *g = t->left->Gentry;
-            if (!g) {
-                fprintf(stderr, "CodeGen: Undeclared variable in address-of\n");
-                exit(1);
-            }
-            
-            int addr_reg = getReg();
-             
-            fprintf(target_file, "MOV R%d, %d\n", addr_reg, g->binding);
+            int addr_reg = getAddrReg(t->left, target_file);
             return addr_reg;
         }
 
@@ -367,6 +444,68 @@ int codeGen(tnode *t, FILE *target_file)
             
             emitLabel(target_file, endLabel);
             popLoopContext();
+            return -1;
+        }
+
+        case NODE_FUNCALL:
+        {
+            int *regs = (int *)malloc(MAX_REGS * sizeof(int));
+            for(int i = 0; i < MAX_REGS; i++)
+            {
+                regs[i] = 0;
+            }
+            int reg_pushed = saveRegisters(target_file, regs);
+            
+            tnode *arg = t->left;
+
+            tnode *temp = arg;
+            int argCount = pushArgStack(temp, target_file, 0);
+
+            fprintf(target_file, "PUSH R0\n");
+
+            fprintf(target_file, "BRKP\n");
+
+            fprintf(target_file, "CALL F%d\n",t->Gentry->flabel);
+            
+            int resultReg = getReg();
+            fprintf(target_file, "POP R%d\n", resultReg);
+
+            for(int i = 0; i < argCount; i++) 
+            {
+                int dummy = getReg();
+                fprintf(target_file, "POP R%d\n", dummy);
+                freeReg(dummy);
+            }
+
+            restoreRegisters(target_file, regs, reg_pushed);
+
+            return resultReg;
+        }
+
+        case NODE_RET:
+        {
+            if(strcmp(t->varname, "MAIN") == 0)
+            {
+                return -1;
+            }
+            
+
+            if(t->left)
+            {
+                int resultReg = codeGen(t->left, target_file);
+
+                int temp = getReg();
+
+                fprintf(target_file, "MOV R%d, BP\n", temp);
+                fprintf(target_file, "ADD R%d, -2\n",temp);
+                fprintf(target_file, "MOV [R%d], R%d\n", temp, resultReg);
+                freeReg(temp);
+                freeReg(resultReg);
+            }
+            
+            fprintf(target_file, "MOV SP, BP\n");
+            fprintf(target_file, "POP BP\n");
+            fprintf(target_file, "RET\n");
             return -1;
         }
 

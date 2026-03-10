@@ -20,6 +20,7 @@ enum nodeType{
     NODE_2D_ARRAY_ASSIGN,
 
     NODE_FUNCALL,
+    NODE_RET,
 
     NODE_READ, 
     NODE_WRITE,

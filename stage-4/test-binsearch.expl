@@ -1,0 +1,45 @@
+decl
+    int n;
+    int arr[20];
+    int mid;
+    int i;
+    int l;
+    int r;
+    int target;
+    int flag;
+enddecl
+begin
+    read(n);
+    i = 0;
+    while (i < n) do
+        read(arr[i]);
+        i = i + 1;
+    endwhile;
+
+    read(target);
+
+    r = n-1;
+    l = 0;
+    flag = 0;
+
+    while (l <= r) do
+        mid = l + (r - l) / 2;
+        if(arr[mid] < target) then
+            l = mid+1;
+        endif;
+        if(arr[mid] > target) then
+            r = mid-1;
+        endif;
+        if(arr[mid] == target) then
+            flag = 1;
+            l = r+1;
+        endif;
+    endwhile;
+
+    if(flag == 1) then
+        write("target found at index:");
+        write(mid);
+    else
+        write("target not found");
+    endif;
+end

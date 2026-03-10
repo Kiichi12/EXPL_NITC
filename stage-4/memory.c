@@ -7,7 +7,7 @@
 #include "constants.h"
 
 struct Gsymbol *Ghead = NULL;
-static int nextBinding = STACK_START;   // starting address as per spec
+static int nextBinding = STACK_START;   
 
 struct Gsymbol *Lookup(char *name)
 {
@@ -59,7 +59,7 @@ void Install1DArray(char *name, int type, int size)
     Ghead = entry;
 
     entry->arrayDim = 1;
-    entry->rows = size;       // for convenience
+    entry->rows = size;       
     entry->cols = 1;
     entry->ptrLevel = 0;
 }
@@ -74,7 +74,7 @@ void Install2DArray(char *name, int type, int rows, int cols)
     struct Gsymbol *entry = malloc(sizeof(struct Gsymbol));
     entry->name = strdup(name);
     entry->type = type;
-    entry->size = rows * cols;   // total cells
+    entry->size = rows * cols;  
     entry->binding = nextBinding;
     nextBinding += entry->size;
     entry->next = Ghead;
@@ -96,7 +96,7 @@ void InstallPointer(char *name, int type, int ptrLevel)
     struct Gsymbol *entry = malloc(sizeof(struct Gsymbol));
     entry->name = strdup(name);
     entry->type = type;
-    entry->size = 1;                // pointer itself is 1 word
+    entry->size = 1;                
     entry->binding = nextBinding;
     nextBinding += 1;
     entry->next = Ghead;
@@ -105,7 +105,7 @@ void InstallPointer(char *name, int type, int ptrLevel)
     entry->arrayDim = 0;
     entry->rows = 0;
     entry->cols = 0;
-    entry->ptrLevel = ptrLevel;     // 1 for *, 2 for **
+    entry->ptrLevel = ptrLevel;     
 }
 
 

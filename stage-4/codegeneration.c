@@ -23,34 +23,47 @@ void emitExit(FILE *target_file) {
 int getAddrReg(tnode *t, FILE *target_file) {
     int addr_reg = getReg();
 
-    if (t->nodetype == NODE_ARRAY_ELEMENT) {
-        int index_reg = codeGen(t->right, target_file);
-        fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
-        fprintf(target_file, "ADD R%d, R%d\n", addr_reg, index_reg);
-        freeReg(index_reg);
-        return addr_reg;
-    } 
-    else if (t->nodetype == NODE_2D_ARRAY_ELEMENT) {
-        int row_reg = codeGen(t->right->left, target_file);
-        int col_reg = codeGen(t->right->right, target_file);
-        int offset_reg = getReg();
-        
-        fprintf(target_file, "MOV R%d, %d\n", offset_reg, t->Gentry->cols);
-        fprintf(target_file, "MUL R%d, R%d\n", offset_reg, row_reg);
-        fprintf(target_file, "ADD R%d, R%d\n", offset_reg, col_reg);
-        
-        fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
-        fprintf(target_file, "ADD R%d, R%d\n", addr_reg, offset_reg);
-        
-        freeReg(row_reg);
-        freeReg(col_reg);
-        freeReg(offset_reg);
-        return addr_reg;
-    }
+    switch (t->nodetype) {
+        case NODE_ID:
+            fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
+            return addr_reg;
 
-    fprintf(stderr, "Internal Error: Cannot get address of nodetype %d\n", t->nodetype);
-    exit(1);
+        case NODE_ARRAY_ELEMENT: {
+            int index_reg = codeGen(t->right, target_file);
+            fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
+            fprintf(target_file, "ADD R%d, R%d\n", addr_reg, index_reg);
+            freeReg(index_reg);
+            return addr_reg;
+        }
+
+        case NODE_2D_ARRAY_ELEMENT: {
+            int row_reg = codeGen(t->right->left, target_file);
+            int col_reg = codeGen(t->right->right, target_file);
+            int offset_reg = getReg();
+            
+            fprintf(target_file, "MOV R%d, %d\n", offset_reg, t->Gentry->cols);
+            fprintf(target_file, "MUL R%d, R%d\n", offset_reg, row_reg);
+            fprintf(target_file, "ADD R%d, R%d\n", offset_reg, col_reg);
+            
+            fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
+            fprintf(target_file, "ADD R%d, R%d\n", addr_reg, offset_reg);
+            
+            freeReg(row_reg);
+            freeReg(col_reg);
+            freeReg(offset_reg);
+            return addr_reg;
+        }
+
+        case NODE_DEREF:
+            freeReg(addr_reg); 
+            return codeGen(t->left, target_file);
+
+        default:
+            fprintf(stderr, "Internal Error: Cannot get address of nodetype %d\n", t->nodetype);
+            exit(1);
+    }
 }
+
 
 int codeGen(tnode *t, FILE *target_file)
 {
@@ -198,7 +211,7 @@ int codeGen(tnode *t, FILE *target_file)
                 default: break;
             }
 
-            freeReg(right_reg);  // Free right operand result
+            freeReg(right_reg); 
             return left_reg;
         }
 
@@ -219,17 +232,17 @@ int codeGen(tnode *t, FILE *target_file)
 
         case NODE_READ:
         {
-            // Calculate the target address
+    
             int addr_reg = getAddrReg(t->left, target_file);
             int temp_reg = getReg();
 
             fprintf(target_file, "MOV R%d, \"Read\"\n", temp_reg);
-            fprintf(target_file, "PUSH R%d\n", temp_reg); // Func Code
+            fprintf(target_file, "PUSH R%d\n", temp_reg); 
             fprintf(target_file, "MOV R%d, -1\n", temp_reg);
-            fprintf(target_file, "PUSH R%d\n", temp_reg); // Arg 1: File Desc
-            fprintf(target_file, "PUSH R%d\n", addr_reg); // Arg 2: Target Address
-            fprintf(target_file, "PUSH R%d\n", temp_reg); // Dummy
-            fprintf(target_file, "PUSH R%d\n", temp_reg); // Dummy
+            fprintf(target_file, "PUSH R%d\n", temp_reg); 
+            fprintf(target_file, "PUSH R%d\n", addr_reg); 
+            fprintf(target_file, "PUSH R%d\n", temp_reg); 
+            fprintf(target_file, "PUSH R%d\n", temp_reg); 
             fprintf(target_file, "CALL 0\n");
             fprintf(target_file, "SUB SP, 5\n");
             

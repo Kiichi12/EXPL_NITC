@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-// Track how many registers are currently in use
+// track how many registers are currently in use
 bool registers[MAX_REGS];
 
-// Initialize or reset register counter
+// initialize or reset register counter
 void initReg() 
 {
     for (int i = 0; i < MAX_REGS; i++) {
@@ -13,7 +13,7 @@ void initReg()
     }
 }
 
-// Allocate the lowest numbered free register
+// allocate the lowest numbered free register
 int getReg() 
 {
     for (int i = 0; i < MAX_REGS; i++) {
@@ -27,7 +27,7 @@ int getReg()
     exit(1);
 }
 
-// Free the highest numbered register currently in use
+// free the highest numbered register currently in use
 void freeReg(int regNo) 
 {
     registers[regNo] = true;

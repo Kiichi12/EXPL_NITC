@@ -19,9 +19,9 @@
     struct TypeInfo typeData;
 }
 
-%token <node> NUM ID STRING
-%token INT STR MAIN DECL ENDDECL kBEGIN kEND WRITE READ RETURN IF THEN ELSE ENDIF WHILE DO ENDWHILE SEMICOLON COMMA LPAREN RPAREN LBRACE RBRACE LSQBR RSQBR ASSIGN ADDRESS_OF
-%type <node> E Stmt Slist InputStmt OutputStmt AssgStmt IfStmt WhileStmt Body MainBlock ArgList
+%token <node> NUM ID STRING 
+%token INT STR MAIN DECL ENDDECL kBEGIN kEND WRITE READ RETURN IF THEN ELSE ENDIF WHILE DO ENDWHILE BREAK CONTINUE SEMICOLON COMMA LPAREN RPAREN LBRACE RBRACE LSQBR RSQBR ASSIGN ADDRESS_OF
+%type <node> E Stmt Slist InputStmt OutputStmt AssgStmt IfStmt WhileStmt ContinueStmt BreakStmt Body MainBlock ArgList
 %type <param> Param ParamList
 %type <typeData> Type
 
@@ -46,6 +46,10 @@ Program:
 
 GDeclarations: 
     DECL GdeclList ENDDECL 
+    {
+        printf("\n--- Global Declarations Complete ---");
+        printSymbolTable();
+    }
     | DECL ENDDECL 
     | /* empty */ 
     ;
@@ -56,7 +60,8 @@ GdeclList:
     ;
 
 GDecl: 
-    Type GidList SEMICOLON;
+    Type GidList SEMICOLON
+    ;
 
 GidList: 
     GidList COMMA Gid 
@@ -85,9 +90,21 @@ Gid:
     ;
 
 Type:
-    INT { $$.type = TYPE_INT; $$.ptrLevel = 0; }
-    | STR { $$.type = TYPE_STRING; $$.ptrLevel = 0; }
-    | MUL Type { $$ = $2; $$.ptrLevel++; }
+    INT 
+    { 
+        $$.type = TYPE_INT; 
+        $$.ptrLevel = 0; 
+    }
+    | STR 
+    { 
+        $$.type = TYPE_STRING; 
+        $$.ptrLevel = 0; 
+    }
+    | MUL Type 
+    { 
+        $$ = $2; 
+        $$.ptrLevel++; 
+    }
     ;
 
 ParamList:
@@ -96,22 +113,107 @@ ParamList:
     ;
 
 Param:
-    Type ID { $$ = CreateParam($2->varname, $1.type, $1.ptrLevel); }
+    Type ID 
+    { 
+        $$ = CreateParam($2->varname, $1.type, $1.ptrLevel); 
+    }
     ;
 
-FdefBlock: FdefBlock Fdef | Fdef;
+FdefBlock: 
+    FdefBlock Fdef 
+    | Fdef;
 
-Fdef: Type ID LPAREN ParamList RPAREN LBRACE LdeclBlock Body RBRACE { /* Task 2 Logic */ }
-    | Type ID LPAREN RPAREN LBRACE LdeclBlock Body RBRACE { /* Task 2 Logic */ }
+Fdef: 
+    Type ID LPAREN ParamList RPAREN 
+    {
+        struct Paramstruct *p = $4;
+        while(p)
+        {
+            LInstall(p->name, p->type, p->ptrLevel);
+            p = p->next;
+        }
+    }
+    
+    LBRACE LdeclBlock Body RBRACE 
+    { 
+        struct Gsymbol *g = Lookup($2->varname);
+        if(!g) 
+        { 
+            yyerror("Function not declared"); 
+            exit(1); 
+        }
+
+        if(g->type != $1.type || !CompareParamLists(g->paramlist, $4)) {
+            yyerror("Function definition does not match declaration"); exit(1);
+        }
+
+        printf("\n========================================");
+        printf("\nFUNCTION: %s", $2->varname);
+        
+        
+        printLST();
+        printf("\nAST for function %s:\n", $2->varname);
+        printAST($9, 0);
+        printf("========================================\n");
+        
+        resetLocalSymbolTable();
+    }
+    | Type ID LPAREN RPAREN LBRACE LdeclBlock Body RBRACE
+    {
+        struct Gsymbol *g = Lookup($2->varname);
+        if(!g || g->paramlist != NULL) {
+            yyerror("Function signature mismatch"); exit(1);
+        }
+
+        printf("\n========================================");
+        printf("\nFUNCTION: %s (No Args)", $2->varname);
+        printLST();
+        printf("\nAST for function %s:\n", $2->varname);
+        printAST($7, 0);
+        printf("========================================\n");
+
+        resetLocalSymbolTable();
+    }
     ;
 
-LdeclBlock: DECL LdeclList ENDDECL | DECL ENDDECL | /* empty */ ;
-LdeclList: LdeclList LDecl | LDecl;
-LDecl: Type IdList SEMICOLON;
-IdList: IdList COMMA ID | ID;
+LdeclBlock: 
+    DECL LdeclList ENDDECL 
+    | DECL ENDDECL 
+    | /* empty */ 
+    ;
+
+LdeclList: 
+    LdeclList LDecl 
+    | LDecl
+    ;
+
+LDecl: 
+    Type IdList SEMICOLON   
+    ;
+
+IdList: 
+    IdList COMMA ID 
+    {
+        LInstall($3->varname, $<typeData>0.type, $<typeData>0.ptrLevel);
+    }
+    | ID
+    {
+        LInstall($1->varname, $<typeData>0.type, $<typeData>0.ptrLevel);
+    }
+    ;
 
 MainBlock:
-    INT MAIN LPAREN RPAREN LBRACE LdeclBlock Body RBRACE { $$ = $7; }
+    INT MAIN LPAREN RPAREN LBRACE LdeclBlock Body RBRACE 
+    { 
+        printf("\n========================================");
+        printf("\nFUNCTION: main");
+        printLST();
+        printf("\nAST for main:\n");
+        printAST($7, 0);
+        printf("========================================\n");
+
+        $$ = $7; 
+    }
     ;
 
 Body:
@@ -125,7 +227,13 @@ Slist:
     ;
 
 Stmt:
-    InputStmt | OutputStmt | AssgStmt | IfStmt | WhileStmt 
+    InputStmt             { $$ = $1; }
+    | OutputStmt          { $$ = $1; }
+    | AssgStmt            { $$ = $1; }
+    | IfStmt              { $$ = $1; }
+    | WhileStmt           { $$ = $1; }
+    | BreakStmt           { $$ = $1; }
+    | ContinueStmt        { $$ = $1; }
     | RETURN E { $$ = makeConnectorNode(NULL, $2); }
     ;
 
@@ -155,6 +263,14 @@ IfStmt:
 WhileStmt:
     WHILE LPAREN E RPAREN DO Slist ENDWHILE { $$ = makeWhileNode($3, $6); }
     ;
+BreakStmt:
+    BREAK { $$ = makeBreakNode(); }
+    ;
+
+ContinueStmt:
+    CONTINUE { $$ = makeContinueNode(); }
+    ;
+
 
 E:
     E PLUS E    { $$ = makeArithNode(NODE_PLUS, $1, $3); }
@@ -191,6 +307,5 @@ int main(int argc, char **argv) {
         if(fp) yyin = fp;
     }
     yyparse();
-    printSymbolTable();
     return 0;
 }

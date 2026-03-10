@@ -6,7 +6,7 @@ CFLAGS  = -Wall -Wextra -g
 
 # Filenames
 LEX_SRC = task1.l
-YAC_SRC = task1.y
+YAC_SRC = task2.y
 TREE_SRC = tree.c
 TREE_HDR = tree.h
 REGISTER_SRC = register.c
@@ -17,9 +17,11 @@ LABEL_SRC = labels.c
 LABEL_HDR = labels.h
 CODEGENERATION_SRC = codegeneration.c
 CODEGENERATION_HDR = codegeneration.h
+HELPER_SRC = yacc-helper.c
+HELPER_HDR = yacc-helper.h
 
 # Executable
-TARGET  = task1
+TARGET  = stage-final
 
 # Generated
 LEX_OUT = lex.yy.c
@@ -31,8 +33,8 @@ YAC_HDR = y.tab.h
 all: $(TARGET)
 
 # Build the parser executable
-$(TARGET): $(LEX_OUT) $(YAC_OUT) $(TREE_SRC) $(TREE_HDR) $(MEMORY_SRC) $(MEMORY_HDR) $(REGISTER_SRC) $(REGISTER_HDR) $(LABEL_SRC) $(LABEL_HDR) $(CODEGENERATION_SRC) $(CODEGENERATION_HDR) 
-	$(CC) $(CFLAGS) $(LEX_OUT) $(YAC_OUT) $(TREE_SRC) $(MEMORY_SRC) $(REGISTER_SRC) $(LABEL_SRC) $(CODEGENERATION_SRC) -o $(TARGET)
+$(TARGET): $(LEX_OUT) $(YAC_OUT) $(TREE_SRC) $(TREE_HDR) $(MEMORY_SRC) $(MEMORY_HDR) $(REGISTER_SRC) $(REGISTER_HDR) $(LABEL_SRC) $(LABEL_HDR) $(CODEGENERATION_SRC) $(CODEGENERATION_HDR) $(HELPER_SRC) $(HELPER_HDR) 
+	$(CC) $(CFLAGS) $(LEX_OUT) $(YAC_OUT) $(TREE_SRC) $(MEMORY_SRC) $(REGISTER_SRC) $(LABEL_SRC) $(CODEGENERATION_SRC) $(HELPER_SRC) -o $(TARGET)
 
 
 # Generate lex.yy.c from the lexer

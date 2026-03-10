@@ -18,7 +18,7 @@ typedef struct tnode {
 
 // to store type-info during parsing
 struct TypeInfo {
-    int type;
+    enum varType type;
     int ptrLevel;
 };
 
@@ -28,7 +28,7 @@ struct tnode* makeNumNode(int val);
 struct tnode* makeStringConstNode(char *lexeme);
 
 struct tnode* makeNewVarNode(char* name);
-struct tnode* makeVarNode(char* name);
+struct tnode* makeVarNode(char* name); 
 struct tnode* makeArrayNode(tnode* id, tnode* expr);
 struct tnode* make2dArrayNode(tnode* id, tnode* indExpr, tnode* valExpr);
 struct tnode* makePointerNode(tnode* expr);
@@ -62,6 +62,8 @@ const char* nodeTypeToString(int nodetype);
 void printAST(struct tnode* t, int level);
 
 struct tnode* makeFuncallNode(char *funcname, struct tnode *arglist);
+struct tnode* makeReturnNode(struct tnode *E, char * funcName);
+
 
 void deleteTree(tnode *root);
 

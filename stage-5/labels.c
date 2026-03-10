@@ -3,131 +3,119 @@
 #include <stdlib.h>
 #include <string.h>
 
-static LabelEntry labelTable[MAX_LABELS];
-static int labelCount = 0;
+static LabelEntry labelTable[MAX_LABELS * 2]; // Larger table for L and F labels
+static int labelEntryCount = 0;
+static int currentLabelNum = 0;
 
 LoopContext loopStack[100];
 static int loopDepth = 0;
 
+int getLabel() { return currentLabelNum++; }
 
-int getLabel()
-{
-    return labelCount++;    
+void addLabel(char *name, int address) {
+    labelTable[labelEntryCount].name = strdup(name);
+    labelTable[labelEntryCount].address = address;
+    labelEntryCount++;
 }
 
-void initLabelTable() {
-    labelCount = 0;
-    loopDepth = 0;
-}
-
-void addLabel(int label, int address) {
-    labelTable[labelCount].label = label;
-    labelTable[labelCount].address = address;
-    labelCount++;
-}
-
-int getLabelAddress(int label) {
-    for (int i = 0; i < labelCount; i++) {
-        if (labelTable[i].label == label)
+int getLabelAddress(char *name) {
+    for (int i = 0; i < labelEntryCount; i++) {
+        if (strcmp(labelTable[i].name, name) == 0)
             return labelTable[i].address;
     }
-    printf("Error: Undefined label L%d\n", label);
+    fprintf(stderr, "Error: Undefined label %s\n", name);
     exit(1);
 }
 
-void emitLabel(FILE *target_file, int label) {
-    fprintf(target_file, "L%d:\n", label);
+void emitLabel(FILE *target_file, int label) 
+{ 
+    fprintf(target_file, "L%d:\n", label); 
 }
 
-void buildLabelTable(FILE *fp)
+void emitFuncLabel(FILE *target_file, int flabel) 
+{ 
+    fprintf(target_file, "F%d:\n", flabel); 
+}
+
+void buildLabelTable(FILE *fp) 
 {
-    char line[(CODE_END - CODE_START)/2];
-    int address = CODE_START;
-
-    initLabelTable();
+    char line[256];
+    int address = CODE_START - 16; // Adjust for header
     rewind(fp);
-    for(int  i = 0; i < 8; i++)
-    {
-        fgets(line, sizeof(line), fp);
-    }
-    while (fgets(line, sizeof(line), fp)) {
 
-        if (line[0] == 'L' && (line[1] >= '0' && line[1] <= '9')) {
-            int label;
-            sscanf(line, "L%d:", &label);
-            addLabel(label, address);
-            
+    while (fgets(line, sizeof(line), fp)) {
+        // Detect Label (L or F or MAIN)
+        if ((line[0] == 'L' || line[0] == 'F' || (line[0] == 'M' && line[1] == 'A')) && strchr(line, ':')) {
+            char name[32];
+            sscanf(line, "%[^:]", name);
+            addLabel(name, address);
         } else {
-            address=address+INSTR_SIZE;
-            if(address >= CODE_END)
+            address += INSTR_SIZE;
+        }
+    }
+}
+
+void translateLabels(FILE *in, FILE *out) {
+    char line[256], op1[32], op2[32];
+    rewind(in);
+    
+    // Copy Header directly (8 lines)
+    for(int i=0; i<8; i++) {
+        if(fgets(line, sizeof(line), in)) 
+        {
+            if(line[0] == 'M' && line[1] == 'A')
             {
-                fprintf(stderr, "Error: Code area exceeded\n");
-                exit(1);
+                fprintf(out, "%d\n", getLabelAddress("MAIN"));
+            }
+            else
+            {
+                fprintf(out, "%s", line);
             }
         }
     }
-}
-
-void translateLabels(FILE *in, FILE *out)
-{
-    char line[CODE_END - CODE_START];
-    rewind(in);
 
     while (fgets(line, sizeof(line), in)) {
+        if (strchr(line, ':')) continue; // Skip label definitions
 
-        if (line[0] == 'L' && (line[1] >= '0' && line[1] <= '9'))
-            continue;
-        if (strncmp(line, "JMP L", 5) == 0) {
-            int label;
-            sscanf(line, "JMP L%d", &label);
-            fprintf(out, "JMP %d\n", getLabelAddress(label));
-        }
-        else if (strncmp(line, "JZ", 2) == 0) {
-            int reg, label;
-            sscanf(line, "JZ R%d, L%d", &reg, &label);
-            fprintf(out, "JZ R%d, %d\n", reg, getLabelAddress(label));
-        }
-        else if (strncmp(line, "JNZ", 3) == 0) {
-            int reg, label;
-            sscanf(line, "JNZ R%d, L%d", &reg, &label);
-            fprintf(out, "JNZ R%d, %d\n", reg, getLabelAddress(label));
-        }
+        // Simple translation for JMP, JZ, JNZ, CALL
+        if (sscanf(line, "JMP %s", op1) == 1) {
+            fprintf(out, "JMP %d\n", getLabelAddress(op1));
+        } else if (sscanf(line, "JZ %[^,], %s", op1, op2) == 2) {
+            fprintf(out, "JZ %s, %d\n", op1, getLabelAddress(op2));
+        } else if (sscanf(line, "JNZ %[^,], %s", op1, op2) == 2) {
+            fprintf(out, "JNZ %s, %d\n", op1, getLabelAddress(op2));
+        } 
+        else if (sscanf(line, "CALL %s", op1) == 1) {
+            if(op1[0] == 'F')
+                fprintf(out, "CALL %d\n", getLabelAddress(op1));
+            else
+                fprintf(out, "CALL %s\n", op1);
+        } 
         else {
             fprintf(out, "%s", line);
         }
     }
 }
 
-void pushLoopContext(int breakLabel, int continueLabel)
+// Loop Stack Implementation
+void pushLoopContext(int b, int c) 
 {
-    if (loopDepth >= 100) {
-        fprintf(stderr, "Error: Loop nesting depth exceeded\n");
-        exit(1);
-    }
-    loopStack[loopDepth].breakLabel = breakLabel;
-    loopStack[loopDepth].continueLabel = continueLabel;
+    loopStack[loopDepth].breakLabel = b;
+    loopStack[loopDepth].continueLabel = c;
     loopDepth++;
 }
-
 void popLoopContext()
-{
-    if (loopDepth > 0) {
-        loopDepth--;
-    }
+{ 
+    if(loopDepth > 0) loopDepth--; 
 }
 
-LoopContext* getCurrentLoopContext()
-{
-    if (loopDepth > 0) {
-        return &loopStack[loopDepth - 1];
-    }
-    return NULL;
+LoopContext* getCurrentLoopContext() 
+{ 
+    return (loopDepth > 0) ? &loopStack[loopDepth-1] : NULL; 
 }
 
-int isInsideLoop()
-{
-    return loopDepth > 0;
-}
-
-
+int isInsideLoop() 
+{ 
+    return loopDepth > 0; 
+} 
 

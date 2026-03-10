@@ -16,7 +16,9 @@
 "end"       { return kEND; }
 "read"      { return READ; }
 "write"     { return WRITE; }
-"return"    { return RETURN; }
+"return"    { 
+                return RETURN; 
+            }
 "main"      { return MAIN; }
 
 "decl"      { return DECL; }
@@ -32,6 +34,8 @@
 "while"     { return WHILE; }
 "do"        { return DO; }
 "endwhile"  { return ENDWHILE; }
+"break"     { return BREAK; }
+"continue"  { return CONTINUE; }
 
 [0-9]+  {
             yylval.node = makeNumNode(atoi(yytext));
