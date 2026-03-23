@@ -24,13 +24,11 @@ int swap(*int x, *int y)
         int temp;
     enddecl
     begin
-        write("before swap");
         temp = *x;
-        write(temp);
         *x = *y;
         *y = temp;
-        write("before return");
-        return 0;   
+        return 0;  
+        write("after return") ;
     end
 }
 
@@ -47,5 +45,6 @@ int main(){
         write(a);
         write(x);
         write(y);
+        return 0;
     end
 }

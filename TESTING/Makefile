@@ -16,6 +16,7 @@ STAGE_2_COMPILER := $(ROOT_DIR)/stage-2/stage-final
 STAGE_3_COMPILER := $(ROOT_DIR)/stage-3/stage-final
 STAGE_4_COMPILER := $(ROOT_DIR)/stage-4/stage-final
 STAGE_5_COMPILER := $(ROOT_DIR)/stage-5/stage-final
+STAGE_6_COMPILER := $(ROOT_DIR)/stage-6/stage-final
 
 XSM_SCRIPT   := ./xsm
 LIBRARY_NAME := library.lib
@@ -31,12 +32,14 @@ STAGE_2_EXPL := $(wildcard $(INPUT_DIR)/s2*.expl)
 STAGE_3_EXPL := $(wildcard $(INPUT_DIR)/s3*.expl)
 STAGE_4_EXPL := $(wildcard $(INPUT_DIR)/s4*.expl)
 STAGE_5_EXPL := $(wildcard $(INPUT_DIR)/s5*.expl)
+STAGE_6_EXPL := $(wildcard $(INPUT_DIR)/s6*.expl)
 
 STAGE_1_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_1_EXPL))
 STAGE_2_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_2_EXPL))
 STAGE_3_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_3_EXPL))
 STAGE_4_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_4_EXPL))
 STAGE_5_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_5_EXPL))
+STAGE_6_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_6_EXPL))
 
 .PRECIOUS: $(OUTPUT_DIR)/%.xsm
 .PHONY: test test-stage-1 test-stage-2 test-stage-3 test-stage-4 test-stage-5 clean clean-runtime-only help
@@ -106,6 +109,14 @@ $(OUTPUT_DIR)/s5%.xsm: $(INPUT_DIR)/s5%.expl
 $(OUTPUT_DIR)/s5%-runtime.txt: $(OUTPUT_DIR)/s5%.xsm
 	$(call run_xsm, $<, $@)
 
+# STAGE 6
+$(OUTPUT_DIR)/s6%.xsm: $(INPUT_DIR)/s6%.expl
+	@echo "  [Stage 6] Compiling $(notdir $<)..."
+	@$(STAGE_6_COMPILER) $< $@
+
+$(OUTPUT_DIR)/s6%-runtime.txt: $(OUTPUT_DIR)/s6%.xsm
+	$(call run_xsm, $<, $@)
+
 # =========================================================
 # Test Reporting Logic
 # =========================================================
@@ -150,7 +161,10 @@ test-stage-4: $(STAGE_4_RUNTIME)
 test-stage-5: $(STAGE_5_RUNTIME)
 	$(call run_report,STAGE 5: Functions & Recursion,s5)
 
-test: test-stage-1 test-stage-2 test-stage-3 test-stage-4 test-stage-5
+test-stage-6: $(STAGE_6_RUNTIME)
+	$(call run_report,STAGE 6: Advanced Features,s6)
+
+test: test-stage-1 test-stage-2 test-stage-3 test-stage-4 test-stage-5 test-stage-6
 
 clean-runtime-only:
 	@rm -f $(OUTPUT_DIR)/*-runtime.txt

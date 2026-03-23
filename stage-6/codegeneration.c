@@ -3,6 +3,7 @@
 #include "labels.h"
 #include "memory.h"
 #include "constants.h"
+#include "tree.h"
 
 #include <stdbool.h>
 
@@ -80,64 +81,78 @@ void emitExit(FILE *target_file)
     fprintf(target_file, "SUB SP, 5\n");
 }
 
+int getFieldAddr(tnode *t, FILE *target_file);
+
 int getAddrReg(tnode *t, FILE *target_file) 
 {
     int addr_reg = getReg();
 
-    if (t->nodetype == NODE_DEREF) {
-        freeReg(addr_reg); // We don't need the default reg yet
-        // The address of (*p) is the VALUE of p
+    if (t->nodetype == NODE_DEREF) 
+    {
+        freeReg(addr_reg);
         return codeGen(t->left, target_file); 
     }
 
-    // Check if it's a Local Variable (LST)
+    if (t->nodetype == NODE_FIELD) 
+    {
+        freeReg(addr_reg);
+        return getFieldAddr(t, target_file);
+    }
+
     struct Lsymbol *l = LLookup(t->varname);
-    if (l) {
+    if (l) 
+    {
         fprintf(target_file, "MOV R%d, BP\n", addr_reg);
         fprintf(target_file, "ADD R%d, %d\n", addr_reg, l->binding);
         return addr_reg;
     }
     
-
-    // Otherwise, check Global Variable (GST)
-    if (t->nodetype == NODE_ID) {
+    if (t->nodetype == NODE_ID) 
+    {
         fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
         return addr_reg;
     }
 
-    if (t->nodetype == NODE_POINTER) {
+    if (t->nodetype == NODE_POINTER) 
+    {
         fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
         fprintf(target_file, "MOV R%d, [R%d]\n", addr_reg, addr_reg);
         return addr_reg;
     }
 
-    if (t->nodetype == NODE_ARRAY_ELEMENT) {
+    if (t->nodetype == NODE_ARRAY_ELEMENT) 
+    {
         int index_reg = codeGen(t->right, target_file);
         fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
         fprintf(target_file, "ADD R%d, R%d\n", addr_reg, index_reg);
         freeReg(index_reg);
         return addr_reg;
-    } 
-    else if (t->nodetype == NODE_2D_ARRAY_ELEMENT) {
-        int row_reg = codeGen(t->right->left, target_file);
-        int col_reg = codeGen(t->right->right, target_file);
-        int offset_reg = getReg();
-        
-        fprintf(target_file, "MOV R%d, %d\n", offset_reg, t->Gentry->cols);
-        fprintf(target_file, "MUL R%d, R%d\n", offset_reg, row_reg);
-        fprintf(target_file, "ADD R%d, R%d\n", offset_reg, col_reg);
-        
-        fprintf(target_file, "MOV R%d, %d\n", addr_reg, t->Gentry->binding);
-        fprintf(target_file, "ADD R%d, R%d\n", addr_reg, offset_reg);
-        
-        freeReg(row_reg);
-        freeReg(col_reg);
-        freeReg(offset_reg);
-        return addr_reg;
     }
 
     fprintf(stderr, "Internal Error: Cannot get address of nodetype %d\n", t->nodetype);
     exit(1);
+}
+
+int getFieldAddr(tnode *t, FILE *target_file)
+{
+    int base_reg = getReg();
+    tnode *base = t->left;
+
+    if (base->nodetype == NODE_ID) 
+    {
+        int var_addr = getAddrReg(base, target_file);
+        fprintf(target_file, "MOV R%d, [R%d]\n", base_reg, var_addr);
+        freeReg(var_addr);
+    }
+    else if (base->nodetype == NODE_FIELD)
+    {
+        int sub_addr = getFieldAddr(base, target_file);
+        fprintf(target_file, "MOV R%d, [R%d]\n", base_reg, sub_addr);
+        freeReg(sub_addr);
+    }
+    
+    fprintf(target_file, "ADD R%d, %d\n", base_reg, t->fieldEntry->fieldOffset);
+    return base_reg;
 }
 
 int codeGen(tnode *t, FILE *target_file) 
@@ -158,6 +173,13 @@ int codeGen(tnode *t, FILE *target_file)
         {
             int r1 = getReg();
             fprintf(target_file, "MOV R%d, %s\n", r1, t->strVal);
+            return r1;
+        }
+
+        case NODE_NULL:
+        {
+            int r1 = getReg();
+            fprintf(target_file, "MOV R%d, 0\n", r1); // NULL is represented as 0(invalid heap address)
             return r1;
         }
 
@@ -194,37 +216,16 @@ int codeGen(tnode *t, FILE *target_file)
             return result_reg;
         }
 
-        case NODE_2D_ARRAY_ELEMENT:
+        case NODE_FIELD:
         {
-            struct Gsymbol *g = t->Gentry;
-            if (!g) {
-                fprintf(stderr, "Undeclared array '%s'\n", t->varname);
-                exit(1);
-            }
-
-            int row_reg = codeGen(t->right->left, target_file);
-            int col_reg = codeGen(t->right->right, target_file);
-
-            int offset_reg = getReg();
-            fprintf(target_file, "MOV R%d, %d\n", offset_reg, g->cols);
-            fprintf(target_file, "MUL R%d, R%d\n", offset_reg, row_reg);
-
-            fprintf(target_file, "ADD R%d, R%d\n", offset_reg, col_reg);
-
-            int addr_reg = getReg();
-            fprintf(target_file, "MOV R%d, R%d\n", addr_reg, offset_reg);
-            fprintf(target_file, "ADD R%d, %d\n", addr_reg, g->binding);
-
-            int result_reg = getReg();
-            fprintf(target_file, "MOV R%d, [R%d]\n", result_reg, addr_reg);
-
-            freeReg(addr_reg);
-            freeReg(offset_reg);
-            freeReg(col_reg);
-            freeReg(row_reg);
-
-            return result_reg;
+            fprintf(target_file, "BRKP\n");
+            int addr = getFieldAddr(t, target_file);
+            int val  = getReg();
+            fprintf(target_file, "MOV R%d, [R%d]\n", val, addr);
+            freeReg(addr);
+            return val;
         }
+
 
 
         case NODE_POINTER:
@@ -243,8 +244,6 @@ int codeGen(tnode *t, FILE *target_file)
             freeReg(ptr_reg);
             return result_reg;
         }
-
-
 
         case NODE_PLUS:
         case NODE_MINUS:
@@ -279,9 +278,32 @@ int codeGen(tnode *t, FILE *target_file)
             return left_reg;
         }
 
+        case NODE_AND:
+        {
+            int falseLabel = getLabel();
+            int endLabel = getLabel();
+
+            int l = codeGen(t->left, target_file);
+            fprintf(target_file, "JZ R%d, L%d\n", l, falseLabel);
+            freeReg(l);
+
+            int r = codeGen(t->right, target_file);
+            fprintf(target_file, "JZ R%d, L%d\n", r, falseLabel);
+            freeReg(r);
+
+            int result_reg = getReg();
+            fprintf(target_file, "MOV R%d, 1\n", result_reg);
+            fprintf(target_file, "JMP L%d\n", endLabel);
+
+            emitLabel(target_file, falseLabel);
+            fprintf(target_file, "MOV R%d, 0\n", result_reg);
+
+            emitLabel(target_file, endLabel);
+            return result_reg;
+        }
+
         case NODE_ASSIGN:
         case NODE_ARRAY_ASSIGN:
-        case NODE_2D_ARRAY_ASSIGN:
         {
             int addr_reg = getAddrReg(t->left, target_file);
             int val_reg = codeGen(t->right, target_file);
@@ -486,19 +508,7 @@ int codeGen(tnode *t, FILE *target_file)
         {
             if(strcmp(t->varname, "MAIN") == 0)
             {
-                // int resultReg = codeGen(t->left, target_file);
-
-                // int temp = getReg();
-
-                // fprintf(target_file, "MOV R%d, BP\n", temp);
-                // fprintf(target_file, "ADD R%d, -2\n",temp);
-                // fprintf(target_file, "MOV [R%d], R%d\n", temp, resultReg);
-                // freeReg(temp);
-                // freeReg(resultReg);
-
-                // fprintf(target_file, "MOV SP, BP\n");
-                // fprintf(target_file, "POP BP\n");
-                // fprintf(target_file, "RET\n");
+                fprintf(target_file, "INT 10\n");
                 return -1;
             }
             
@@ -522,9 +532,86 @@ int codeGen(tnode *t, FILE *target_file)
             return -1;
         }
 
+        case NODE_INITIALIZE:
+        {
+            int *regs = calloc(MAX_REGS, sizeof(int));
+            int  saved = saveRegisters(target_file, regs);
+
+            int tmp = getReg();
+            fprintf(target_file, "MOV R%d, \"Heapset\"\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);
+            fprintf(target_file, "MOV R%d, 0\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);  
+            fprintf(target_file, "PUSH R%d\n", tmp);   
+            fprintf(target_file, "PUSH R%d\n", tmp);   
+            fprintf(target_file, "PUSH R%d\n", tmp);   
+            fprintf(target_file, "CALL 0\n");
+            fprintf(target_file, "SUB SP, 5\n");
+            fprintf(target_file, "BRKP\n");
+            // must change to ADD SP, 3 or something to save numebr of lines
+
+            freeReg(tmp);
+            restoreRegisters(target_file, regs, saved);
+            free(regs);
+            return -1;
+        }
+
+        case NODE_ALLOC:
+        {
+            int *regs = calloc(MAX_REGS, sizeof(int));
+            int saved = saveRegisters(target_file, regs);
+
+            int tmp = getReg();
+            fprintf(target_file, "MOV R%d, \"Alloc\"\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);
+            fprintf(target_file, "MOV R%d, 0\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);
+            fprintf(target_file, "CALL 0\n");
+
+            int retReg = getReg();
+            fprintf(target_file, "MOV R%d, SP\n", retReg);
+            // fprintf(target_file, "SUB R%d, 1\n", retReg);
+            fprintf(target_file, "MOV R%d, [R%d]\n", retReg, retReg);
+            fprintf(target_file, "SUB SP, 5\n");
+
+            freeReg(tmp);
+            restoreRegisters(target_file, regs, saved);
+            fprintf(target_file, "BRKP\n");
+            free(regs);
+            return retReg;   // parent NODE_ASSIGN handles storing into the variable
+        }
+
+        case NODE_FREE:
+        {
+            int val_reg = codeGen(t->left, target_file);
+
+            int *regs = calloc(MAX_REGS, sizeof(int));
+            int  saved = saveRegisters(target_file, regs);
+
+            int tmp = getReg();
+            fprintf(target_file, "MOV R%d, \"Free\"\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);        
+            fprintf(target_file, "PUSH R%d\n", val_reg);    
+            fprintf(target_file, "MOV R%d, 0\n", tmp);
+            fprintf(target_file, "PUSH R%d\n", tmp);        
+            fprintf(target_file, "PUSH R%d\n", tmp);        
+            fprintf(target_file, "PUSH R%d\n", tmp);        
+            fprintf(target_file, "CALL 0\n");
+            fprintf(target_file, "SUB SP, 5\n");
+
+            freeReg(val_reg);
+            freeReg(tmp);
+            restoreRegisters(target_file, regs, saved);
+            free(regs);
+            return -1;
+        }
         default:
         {
             printf("Unknown nodetype %d\n", t->nodetype);
+            printf("Nodetype:%s\n",nodeTypeToString(t->nodetype));
             exit(1);
         }
     }

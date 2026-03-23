@@ -1,0 +1,85 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
+enum nodeType{
+    NODE_NUM = 201,
+    NODE_STRING,
+    NODE_ID,
+    NODE_ARRAY_ELEMENT,
+    NODE_2D_ARRAY_ELEMENT,
+    NODE_POINTER,
+    NODE_DEREF,
+
+    NODE_PLUS,
+    NODE_MINUS,  
+    NODE_MUL,
+    NODE_DIV,   
+    
+    NODE_ASSIGN,
+    NODE_ARRAY_ASSIGN,
+
+    NODE_FUNCALL,
+    NODE_RET,
+
+    NODE_READ, 
+    NODE_WRITE,
+
+    NODE_CONNECTOR,
+
+    NODE_WHILE,
+    NODE_IF,
+    NODE_IFELSE,
+
+    NODE_BREAK,    
+    NODE_CONTINUE,
+    NODE_DOWHILE,    
+    NODE_REPEAT,  
+
+    NODE_LT,
+    NODE_LE,
+    NODE_GT,
+    NODE_GE,
+    NODE_EQ,
+    NODE_NE,
+
+    NODE_AND,
+    NODE_OR,
+    NODE_NOT,
+
+    NODE_ALLOC,
+    NODE_FREE,
+    NODE_INITIALIZE,
+
+    NODE_FIELD,
+
+    NODE_NULL
+};
+
+enum varType{
+    TYPE_INT = 101,
+    TYPE_STRING,
+    TYPE_BOOL,
+    TYPE_POINTER,
+    TYPE_VOID, // maybe useful in future
+    TYPE_NULL,
+
+    TYPE_USERDEF
+};
+
+#define MAX_LABELS 256
+
+#define STACK_START 4096
+#define CODE_START 2056
+#define CODE_END 4095
+#define NUM_STATIC_VARS 26
+#define HEADER_SIZE 8
+#define TOTAL_REGISTERS 20
+#define INSTR_SIZE 2
+
+#define HEAP_START 1024
+#define HEAP_END 2047
+
+#define MAX_FIELDS_IN_USER_TYPE 8
+
+
+#endif

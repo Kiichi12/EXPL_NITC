@@ -4,9 +4,9 @@ int main()
 {
     
     int i;
-    for (i = 1; i <= 8; i++) {
+    for (i = 1; i <= 4; i++) {
         char filename[20];
-        sprintf(filename, "s5t%d.txt", i);
+        sprintf(filename, "s6t%d.txt", i);
         FILE *out = fopen(filename, "w");
         fclose(out);
     }

@@ -8,6 +8,7 @@
     #include "codegeneration.h"
     #include "register.h"
     #include "labels.h"
+    #include "typetable.h"
 
     void yyerror(char *s);
     int yylex();
@@ -18,8 +19,11 @@
     char *current_function_name;
     extern char * yytext;
 
-    // Global variable to store the type of the current declaration line
+    // to store the type of the current declaration line
     struct TypeInfo currentTypeData;
+
+    // to store the udeftype being defined
+    static TypeTableEntry *currentUdefType = NULL;
 %}
 
 %union 
@@ -30,14 +34,22 @@
 }
 
 %token <node> NUM ID STRING 
-%token INT STR MAIN DECL ENDDECL kBEGIN kEND WRITE READ RETURN IF THEN ELSE ENDIF 
-       WHILE DO ENDWHILE BREAK CONTINUE SEMICOLON COMMA LPAREN RPAREN LBRACE RBRACE 
-       LSQBR RSQBR ASSIGN ADDRESS_OF MUL
+%token INT STR MAIN DECL ENDDECL kBEGIN kEND WRITE READ RETURN 
+       IF THEN ELSE ENDIF 
+       WHILE DO ENDWHILE BREAK CONTINUE 
+       SEMICOLON COMMA LPAREN RPAREN LBRACE RBRACE LSQBR RSQBR 
+       ASSIGN 
+       ADDRESS_OF MUL 
+       TYPE_KW ENDTYPE DOT
+       ALLOC FREE_KW INITIALIZE NULLVAL
 
-%type <node> E Stmt Slist InputStmt OutputStmt AssgStmt IfStmt WhileStmt ContinueStmt BreakStmt Body MainBlock ArgList
+%type <node> E Stmt Slist InputStmt OutputStmt AssgStmt IfStmt WhileStmt ContinueStmt BreakStmt Body MainBlock ArgList LValue FreeStmt InitStmt FieldAccess 
 %type <param> Param ParamList
 %type <typeData> Type
 
+%left OR
+%left AND
+%right NOT
 %left PLUS MINUS
 %left MUL DIV
 %nonassoc LT LE GT GE EQ NE
@@ -46,21 +58,96 @@
 %%
 
 Program:
-    GDeclarations FdefBlock MainBlock { root = $3; }
+  | TypeDefBlock GDeclarations FdefBlock MainBlock { root = $4; }
+  | TypeDefBlock GDeclarations MainBlock { root = $3; }
+  | GDeclarations FdefBlock MainBlock { root = $3; }
   | GDeclarations MainBlock { root = $2; }
   ;
 
+TypeDefBlock:
+  TYPE_KW TypeDefList ENDTYPE
+  {
+    printTypeTable();
+  }
+  ;
+
+TypeDefList:
+  TypeDefList TypeDef
+  | TypeDef
+  ;
+
+TypeDef:
+  ID 
+  {
+    currentUdefType = installType($1->varname);
+  } 
+  LBRACE FieldDecList RBRACE 
+  {
+    currentUdefType = NULL; // end of type definition
+  }
+  ;
+
+FieldDecList:
+  FieldDecList FieldDec
+  | FieldDec
+  ;
+
+FieldDec:
+  Type ID SEMICOLON
+  {
+    TypeTableEntry *t;
+    if($1.type == TYPE_USERDEF)
+    {
+      t = $1.typeEntry;
+    }
+    else
+    {
+      if($1.type == TYPE_INT)
+      {
+        t = lookupType("int");
+      }
+      if($1.type == TYPE_STRING)
+      {
+        t = lookupType("string");
+      }
+      if($1.type == TYPE_BOOL)
+      {
+        t = lookupType("bool");
+      }
+    }
+    if(!t)
+    {
+      yyerror("Unknown field type");
+      exit(1);
+    }
+    if(currentUdefType->fieldCount >= MAX_FIELDS_IN_USER_TYPE)
+    {
+      yyerror("Maximum fields in user type exceeded");
+      exit(1);
+    }
+
+    addField(currentUdefType, $2->varname, t);
+  }
+  ;
+
+/* 
+FIdList:
+  FIdList COMMA ID
+  | ID
+  ;
+*/
+
 GDeclarations: 
-    DECL GdeclList ENDDECL 
+    DECL GDecList ENDDECL 
     { 
-      handleGdeclComplete(); 
+      handleGdecComplete(); 
     }
   | DECL ENDDECL 
   | 
   ;
 
-GdeclList: 
-  GdeclList GDecl 
+GDecList: 
+  GDecList GDecl 
   | GDecl 
   ;
 
@@ -76,27 +163,23 @@ GidList:
 Gid:
   ID 
   { 
-    // Uses the global currentTypeData instead of stack reference
     handleGidScalar($1, &currentTypeData); 
   }
   | ID LSQBR NUM RSQBR 
   { 
     handleGidArray1D($1, &currentTypeData, $3->val); 
   }
-  | ID LSQBR NUM RSQBR LSQBR NUM RSQBR 
-  { 
-    handleGidArray2D($1, &currentTypeData, $3->val, $6->val); 
-  }
   | ID LPAREN ParamList RPAREN 
   { 
-    handleGidFunction($1, &currentTypeData, $3); 
+    struct TypeInfo funcType = $<typeData>0;
+    handleGidFunction($1, &funcType, $3); 
   }
   | ID LPAREN RPAREN 
   { 
     handleGidFunction($1, &currentTypeData, NULL); 
   }
   ;
-
+    
 Type:
   INT { 
       $$.type = TYPE_INT; $$.ptrLevel = 0; 
@@ -110,6 +193,18 @@ Type:
       $$ = $2; $$.ptrLevel++; 
       currentTypeData = $$; 
   }
+  | ID {
+      TypeTableEntry *t = lookupType($1->varname);
+      if(!t || t->typeId < TYPE_USERDEF)
+      {
+        yyerror("Undefined type name");
+        exit(1);
+      }
+      $$.type = TYPE_USERDEF;
+      $$.typeEntry = t;
+      $$.ptrLevel = 0;
+      currentTypeData = $$;
+  }
   ;
 
 ParamList:
@@ -118,7 +213,7 @@ ParamList:
   ;
 
 Param:
-  Type ID { $$ = CreateParam($2->varname, $1.type, $1.ptrLevel); }
+  Type ID { $$ = CreateParam($2->varname, $1.type, $1.typeEntry, $1.ptrLevel); }
   ;
 
 FdefBlock: 
@@ -130,7 +225,7 @@ Fdef:
   Type ID LPAREN ParamList RPAREN 
   {
     handleParamInstall($4);
-    
+    // set current function name
     current_function_name = $2->varname;
   }
   LBRACE LdeclBlock Body RBRACE 
@@ -140,14 +235,17 @@ Fdef:
     handleFdefPrint($2->varname, $9);
 
     struct Gsymbol* g = Lookup($2->varname);
+    
     fprintf(interim_file, "F%d:\n", g->flabel);
     fprintf(interim_file, "PUSH BP\n");
     fprintf(interim_file, "MOV BP, SP\n");
 
     locAlloc(interim_file);
+    
 
     codeGen($9, interim_file);
 
+    // Clear current function name
     current_function_name = NULL;
 
     // Now it is expected that all functions have a return statement(empty or not)
@@ -155,6 +253,7 @@ Fdef:
   }
   | Type ID LPAREN RPAREN LBRACE LdeclBlock Body RBRACE
   {
+    // Set current function name
     current_function_name = $2->varname;
     
     struct TypeInfo retType = $1;
@@ -162,14 +261,17 @@ Fdef:
     handleFdefNoArgsPrint($2->varname, $7); 
 
     struct Gsymbol* g = Lookup($2->varname);
+    
     fprintf(interim_file, "F%d:\n", g->flabel);
     fprintf(interim_file, "PUSH BP\n");
     fprintf(interim_file, "MOV BP, SP\n");
 
     locAlloc(interim_file);
+    
 
     codeGen($7, interim_file);
 
+    // Clear current function name
     current_function_name = NULL;
 
     // Now it is expected that all functions have a return statement(empty or not)
@@ -178,13 +280,13 @@ Fdef:
   ;
 
 LdeclBlock: 
-  DECL LdeclList ENDDECL 
+  DECL LDecList ENDDECL 
   | DECL ENDDECL 
   | 
   ;
 
-LdeclList: 
-  LdeclList LDecl 
+LDecList: 
+  LDecList LDecl 
   | LDecl 
   ;
 
@@ -195,7 +297,7 @@ LDecl:
 IdList: 
   IdList COMMA ID 
   { 
-    // uses the global currentTypeData
+    // Uses the global currentTypeData
     handleLidInstall($3->varname, &currentTypeData); 
   }
   | ID 
@@ -211,12 +313,10 @@ MainBlock:
   } 
   LPAREN RPAREN LBRACE LdeclBlock Body RBRACE 
   { 
-    // set current function name for main
-    
-    
     handleMainPrint($8); 
     $$ = $8; 
 
+    
     fprintf(interim_file, "MAIN:\n");
     moveStackPointer(interim_file);
     fprintf(interim_file, "BRKP\n");
@@ -224,6 +324,7 @@ MainBlock:
     fprintf(interim_file, "MOV BP, SP\n");
     
     locAlloc(interim_file);
+    
 
     codeGen($$, interim_file);
 
@@ -255,12 +356,13 @@ Stmt:
   | ContinueStmt { $$ = $1; }
   | RETURN E { $$ = makeReturnNode($2, current_function_name); }
   | RETURN { $$ = makeReturnNode(NULL, current_function_name); } 
+  | FreeStmt { $$ = $1; }
+  | InitStmt { $$ = $1; }
   ;
 
 InputStmt:
   READ LPAREN ID RPAREN { $$ = makeReadNode(makeVarNode($3->varname)); }
   | READ LPAREN ID LSQBR E RSQBR RPAREN { $$ = makeReadNode(makeArrayNode($3, $5)); }
-  | READ LPAREN ID LSQBR E RSQBR LSQBR E RSQBR RPAREN { $$ = makeReadNode(make2dArrayNode($3, $5, $8)); }
   | READ LPAREN MUL ID RPAREN               
   { 
     tnode* ptr_node = makeVarNode($4->varname);
@@ -272,14 +374,53 @@ OutputStmt:
   WRITE LPAREN E RPAREN { $$ = makeWriteNode($3); }
   ;
 
+FreeStmt:
+  FREE_KW LPAREN LValue RPAREN
+  {
+      $$ = makeFreeNode($3);
+  }
+  ;
+
+InitStmt:
+  INITIALIZE LPAREN RPAREN
+  {
+      $$ = makeInitializeNode();
+  }
+  ;
 AssgStmt:
-  ID ASSIGN E { $$ = makeAssignNode(makeVarNode($1->varname), $3); }
-  | ID LSQBR E RSQBR ASSIGN E { $$ = makeArrayAssignNode(makeArrayNode($1, $3), $6); }
-  | ID LSQBR E RSQBR LSQBR E RSQBR ASSIGN E { $$ = makeArray2DAssignNode(make2dArrayNode($1, $3, $6), $9); }
+  LValue ASSIGN E { $$ = makeAssignNode($1, $3); }
   | MUL ID ASSIGN E %prec UNARY 
   { 
     tnode* deref = makeDerefNode(makeVarNode($2->varname));
     $$ = makeAssignNode(deref, $4); 
+  }
+  | LValue ASSIGN ALLOC LPAREN RPAREN
+  {
+    $$ = makeAssignNode($1, makeAllocNode($1));
+  }
+  ;
+  
+LValue:
+  ID
+  {
+    $$ = makeVarNode($1->varname);
+  }
+  | ID LSQBR E RSQBR
+  {
+    $$ = makeArrayNode($1, $3);
+  }
+  | FieldAccess
+  ;
+
+FieldAccess:
+  ID DOT ID
+  {
+    tnode *base = makeVarNode($1->varname);
+    $$ = makeFieldNode(base, $3->varname);
+  }
+  | FieldAccess DOT ID
+  {
+    $$ = makeFieldNode($1, $3->varname);
   }
   ;
 
@@ -311,8 +452,12 @@ E:
   | E LE E { $$ = makeBoolNode(NODE_LE, $1, $3); }
   | E GE E { $$ = makeBoolNode(NODE_GE, $1, $3); }
   | E NE E { $$ = makeBoolNode(NODE_NE, $1, $3); }
+  | E AND E { $$ = makeBoolNode(NODE_AND, $1, $3); }
+  | E OR E  { $$ = makeBoolNode(NODE_OR, $1, $3); }
+  | NOT E   { $$ = makeNotNode($2); }
   | NUM { $$ = $1; }
   | STRING { $$ = $1; }
+  | NULLVAL    { $$ = makeNullNode(); }
   | ID { $$ = makeVarNode($1->varname); }
   | ID LPAREN ArgList RPAREN { $$ = makeFuncallNode($1->varname, $3); }
   | ID LPAREN RPAREN { $$ = makeFuncallNode($1->varname, NULL); }
@@ -320,7 +465,7 @@ E:
   | ADDRESS_OF ID %prec UNARY { $$ = makePointerNode(makeVarNode($2->varname)); }
   | LPAREN E RPAREN { $$ = $2; }
   | ID LSQBR E RSQBR { $$ = makeArrayNode($1, $3); }
-  | ID LSQBR E RSQBR LSQBR E RSQBR { $$ = make2dArrayNode($1, $3, $6); }
+  | FieldAccess
   ;
 
 ArgList: 
@@ -362,10 +507,10 @@ int main(int argc, char **argv)
     return 1;
   }
 
+  initTypeTable();
   initReg();
   fileinit(interim_file);
   
-  // initialize current function name
   current_function_name = NULL;
   
   yyparse();
@@ -373,6 +518,7 @@ int main(int argc, char **argv)
 
   fclose(interim_file);
 
+  
   interim_file = fopen("interim_file.xsm", "r");
   rewind(interim_file);
   buildLabelTable(interim_file);
@@ -381,5 +527,6 @@ int main(int argc, char **argv)
 
   fclose(interim_file);
   fclose(target_file);
+  
   return 0;
 }

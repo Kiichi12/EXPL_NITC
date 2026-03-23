@@ -40,11 +40,9 @@ int main()
   begin
     read(n);
     i=0;
-    write(n);
     while(i<n) do
       read(arr[i]);
       i = i+1;
-      write(i);
     endwhile;
 
     r = BubbleSort(0,n-1);
