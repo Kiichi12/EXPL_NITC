@@ -17,6 +17,7 @@ STAGE_3_COMPILER := $(ROOT_DIR)/stage-3/stage-final
 STAGE_4_COMPILER := $(ROOT_DIR)/stage-4/stage-final
 STAGE_5_COMPILER := $(ROOT_DIR)/stage-5/stage-final
 STAGE_6_COMPILER := $(ROOT_DIR)/stage-6/stage-final
+STAGE_7_COMPILER := $(ROOT_DIR)/stage-7/stage-final
 
 XSM_SCRIPT   := ./xsm
 LIBRARY_NAME := library.lib
@@ -33,6 +34,7 @@ STAGE_3_EXPL := $(wildcard $(INPUT_DIR)/s3*.expl)
 STAGE_4_EXPL := $(wildcard $(INPUT_DIR)/s4*.expl)
 STAGE_5_EXPL := $(wildcard $(INPUT_DIR)/s5*.expl)
 STAGE_6_EXPL := $(wildcard $(INPUT_DIR)/s6*.expl)
+STAGE_7_EXPL := $(wildcard $(INPUT_DIR)/s7*.expl)
 
 STAGE_1_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_1_EXPL))
 STAGE_2_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_2_EXPL))
@@ -40,9 +42,10 @@ STAGE_3_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(
 STAGE_4_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_4_EXPL))
 STAGE_5_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_5_EXPL))
 STAGE_6_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_6_EXPL))
+STAGE_7_RUNTIME := $(patsubst $(INPUT_DIR)/%.expl,$(OUTPUT_DIR)/%-runtime.txt,$(STAGE_7_EXPL))
 
 .PRECIOUS: $(OUTPUT_DIR)/%.xsm
-.PHONY: test test-stage-1 test-stage-2 test-stage-3 test-stage-4 test-stage-5 clean clean-runtime-only help
+.PHONY: test test-stage-1 test-stage-2 test-stage-3 test-stage-4 test-stage-5 test-stage-6 test-stage-7 clean clean-runtime-only help
 
 help:
 	@echo "Usage: make test | test-stage-1 | clean"
@@ -117,6 +120,14 @@ $(OUTPUT_DIR)/s6%.xsm: $(INPUT_DIR)/s6%.expl
 $(OUTPUT_DIR)/s6%-runtime.txt: $(OUTPUT_DIR)/s6%.xsm
 	$(call run_xsm, $<, $@)
 
+# STAGE 7
+$(OUTPUT_DIR)/s7%.xsm: $(INPUT_DIR)/s7%.expl
+	@echo "  [Stage 7] Compiling $(notdir $<)..."
+	@$(STAGE_7_COMPILER) $< $@
+
+$(OUTPUT_DIR)/s7%-runtime.txt: $(OUTPUT_DIR)/s7%.xsm
+	$(call run_xsm, $<, $@)
+
 # =========================================================
 # Test Reporting Logic
 # =========================================================
@@ -164,7 +175,10 @@ test-stage-5: $(STAGE_5_RUNTIME)
 test-stage-6: $(STAGE_6_RUNTIME)
 	$(call run_report,STAGE 6: Advanced Features,s6)
 
-test: test-stage-1 test-stage-2 test-stage-3 test-stage-4 test-stage-5 test-stage-6
+test-stage-7: $(STAGE_7_RUNTIME)
+	$(call run_report,STAGE 7: Advanced Features,s7)
+
+test: test-stage-1 test-stage-2 test-stage-3 test-stage-4 test-stage-5 test-stage-6 test-stage-7
 
 clean-runtime-only:
 	@rm -f $(OUTPUT_DIR)/*-runtime.txt
