@@ -1,0 +1,6 @@
+Enter
+1.Rectangle
+2.Square
+Enter side sq
+25
+Machine is halting.
