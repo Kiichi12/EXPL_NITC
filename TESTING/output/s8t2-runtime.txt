@@ -1,3 +1,0 @@
-In C F0
-1
-Machine is halting.

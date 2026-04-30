@@ -1,3 +1,0 @@
-In B F1
-1
-Machine is halting.
