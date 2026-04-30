@@ -317,7 +317,7 @@ int codeGen(tnode *t, FILE *target_file, struct Gsymbol *func)
 
         case NODE_FIELD:
         {
-            fprintf(target_file, "BRKP\n");
+            fprintf(target_file, "BRKP\nBRKP\n");
             int addr = getFieldAddr(t, target_file);
             int val  = getReg();
             fprintf(target_file, "MOV R%d, [R%d]\n", val, addr);
@@ -447,7 +447,7 @@ int codeGen(tnode *t, FILE *target_file, struct Gsymbol *func)
             tnode *lval = t->left;
             tnode *rval = t->right;
             fprintf(target_file, "BRKP\n");
-            if((lval->type == TYPE_CLASS || lval->type == TYPE_USERDEF) && (lval->typeEntry && lookupClass(lval->typeEntry->name)))
+            if((lval->type >= TYPE_CLASS) && (lval->typeEntry && lookupClass(lval->typeEntry->name)))
             {
                 if(rval->nodetype == NODE_NEW)
                 {
@@ -457,7 +457,7 @@ int codeGen(tnode *t, FILE *target_file, struct Gsymbol *func)
                     int addr_reg = getAddrReg(lval, target_file);
                     int heap_reg = codeGen(rval, target_file, NULL);
 
-                    fprintf(target_file, "MOV [R%d], R%d\n", addr_reg, heap_reg);
+                    fprintf(target_file, "MOV [R%d], R%d\nBRKP\n", addr_reg, heap_reg);
                     freeReg(heap_reg);
 
                     int vft_reg = getReg();

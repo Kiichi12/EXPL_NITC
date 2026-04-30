@@ -1,4 +1,5 @@
 #include "typetable.h"
+#include "classtable.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -133,6 +134,19 @@ Fieldstruct *addField(TypeTableEntry *udeftype, const char *fieldName, TypeTable
         exit(1);
     }
     f->next = NULL;
+    ClassTableEntry *fieldClass = lookupClass(f->typeEntry->name);
+    if(fieldClass)
+    {
+        udeftype->fieldCount++;
+        Fieldstruct *vftptr = malloc(sizeof(Fieldstruct));
+
+        vftptr->name = strdup("vftptr");
+        vftptr->fieldOffset = udeftype->fieldCount;
+        vftptr->typeEntry = NULL;
+        vftptr->next = NULL;
+
+        f->next = vftptr;
+    }
     Fieldstruct *temp = udeftype->fields;
     if(!temp)
     {

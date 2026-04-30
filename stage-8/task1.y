@@ -104,7 +104,7 @@ ClassDef:
     if (currentClassEntry)
     {
       printf("\n--- Class '%s' definition complete ---\n", currentClassEntry->name);
-      // printClassTable();
+      printClassTable();
     }
     currentClassEntry = NULL;
     currentUdefType = NULL;
@@ -141,7 +141,7 @@ ClassMemberDec:
     }
 
     TypeTableEntry *t;
-    if($1.type == TYPE_USERDEF)
+    if($1.type == TYPE_USERDEF || $1.type == TYPE_CLASS)
     {
       t = $1.typeEntry;
     }

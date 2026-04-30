@@ -1,5 +1,6 @@
 decl
-    int n,fibo(int n);
+    int n;
+    int fibo(int n);
 enddecl
 
 int fibo(int n){

@@ -1,74 +1,49 @@
-class A
-{
-    decl
-        int i;
-        int f0();
-        int f1();
-    enddecl
-
-    int f0()
-    {
-        decl
-            int c;
-        enddecl
-        begin
-            c = self.f1();
-            write(self.i);
-            return 1;
-        end
-    }
-
-    int f1()
-    {
-        decl
-        enddecl
-        begin
-            self.i = 0;
-            write("In A F1");
-            return 1;
-        end
-    }
-}
-
-B extends A
-{  
-    decl
-        int f1();
-    enddecl
-
-    int f1()
-    {
-        decl
-        enddecl
-        begin
-            self.i = 1;
-            write("In B F1");
-            return 1;
-        end
-    }
-}
-endclass
+type
+  List
+  {
+    int data;
+    List next;
+  }
+endtype
 
 decl
-    int n;
-    A obj;
+    List head;
 enddecl
 
 int main()
 {
-    decl
-    enddecl
-    begin
-        initialize();
-        read(n);
+  decl
+    int length, x;
+    List p, q;
+  enddecl
 
-        if (n > 0) then
-            obj = new(A);
-        else
-            obj = new(B);
-        endif;
+  begin
+    initialize();
 
-        n = obj.f0();
-        return 1;
-    end
+    head=NULL;
+    q=head;
+    read(x);
+    while (x!=0)  do
+      p=alloc();
+      p.data=x;
+      p.next=NULL;
+
+      if (head==NULL) then
+        head=p;
+        q=p;
+      else
+        q.next=p;
+        q=p;
+      endif;
+      read(x);
+    endwhile;
+
+    p=head;
+    while(p!=NULL)  do
+      write(p.data);
+      p=p.next;
+    endwhile;
+
+    return 1;
+  end
 }

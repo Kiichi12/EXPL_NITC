@@ -1,0 +1,5 @@
+Inorder
+1
+3
+4
+Machine is halting.

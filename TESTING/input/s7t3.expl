@@ -20,7 +20,8 @@ class
         }
     }
 
-    testfactsum{
+    testfactsum
+    {
         decl
             fact o1;
             int testfun(int n);

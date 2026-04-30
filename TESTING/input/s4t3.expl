@@ -4,25 +4,30 @@ decl
   int a, b, c;
 enddecl
 
-begin
-  read(n);
+int main()
+{
+  decl
+  enddecl
+  begin
+    read(n);
 
-  if (n == 0) then
-    write(0);
-  else
-    if (n == 1) then
-      write(1);
+    if (n == 0) then
+      write(0);
     else
-      a = 0;
-      b = 1;
-      i = 2;
-      while (i <= n) do
-        c = a + b;
-        a = b;
-        b = c;
-        i = i + 1;
-      endwhile;
-      write(b);
+      if (n == 1) then
+        write(1);
+      else
+        a = 0;
+        b = 1;
+        i = 2;
+        while (i <= n) do
+          c = a + b;
+          a = b;
+          b = c;
+          i = i + 1;
+        endwhile;
+        write(b);
+      endif;
     endif;
-  endif;
-end
+  end
+}

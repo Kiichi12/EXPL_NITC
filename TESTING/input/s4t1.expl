@@ -1,9 +1,15 @@
 decl
-    int x, *p;
+    int x;
+    * int p;
 enddecl
-begin
-    p = &x;
-    read(*p);    
-    write(x);    
-    write(*p);   
-end
+int main()
+{
+    decl
+    enddecl
+    begin
+        p = &x;
+        read(*p);    
+        write(x);    
+        write(*p);   
+    end
+}

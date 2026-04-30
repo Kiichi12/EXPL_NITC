@@ -1688,7 +1688,7 @@ yyreduce:
     if (currentClassEntry)
     {
       printf("\n--- Class '%s' definition complete ---\n", currentClassEntry->name);
-      // printClassTable();
+      printClassTable();
     }
     currentClassEntry = NULL;
     currentUdefType = NULL;
@@ -1729,7 +1729,7 @@ yyreduce:
     }
 
     TypeTableEntry *t;
-    if((yyvsp[-2].typeData).type == TYPE_USERDEF)
+    if((yyvsp[-2].typeData).type == TYPE_USERDEF || (yyvsp[-2].typeData).type == TYPE_CLASS)
     {
       t = (yyvsp[-2].typeData).typeEntry;
     }

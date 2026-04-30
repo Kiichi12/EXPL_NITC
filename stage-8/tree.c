@@ -191,6 +191,17 @@ struct tnode* makeAssignNode(struct tnode* lval, struct tnode* expr)
             {
                 if (lval->typeEntry != expr->typeEntry) 
                 {
+                    if(!exprClass)
+                    {
+                        fprintf(stderr, "Tree.c: makeAssignNode: Type mismatch in assignment(udeftype) expr is not class\n expr: %s\n", expr->varname);
+                        exit(1);
+                    }
+                    if(!lvalClass)
+                    {
+                        
+                        fprintf(stderr, "Tree.c: makeAssignNode: Type mismatch in assignment(udeftype) lval is not class\n lval type: %s\n", lval->typeEntry->name);
+                        exit(1);
+                    }
                     fprintf(stderr, "Tree.c: makeAssignNode: Type mismatch in assignment(udeftype)\n");
                     exit(1);
                 }
@@ -741,7 +752,7 @@ void printAST(struct tnode* t, int level)
     
     if (t->nodetype == NODE_FIELD && t->fieldEntry)
     {
-        printf(" .%s@%d", t->fieldEntry->name, t->fieldEntry->fieldOffset);
+        printf(" .%s@%d type:%d", t->fieldEntry->name, t->fieldEntry->fieldOffset, t->fieldEntry->typeEntry->typeId);
     }
 
     printf("\n");
